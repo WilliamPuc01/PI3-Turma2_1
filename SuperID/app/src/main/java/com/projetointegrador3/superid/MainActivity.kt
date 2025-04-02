@@ -57,6 +57,18 @@ fun createAccount(email: String, password:String){
         }
 }
 
+fun login(email: String, password:String){
+    val auth = Firebase.auth
+    auth.signInWithEmailAndPassword(email, password)
+        .addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                println("Login realizado com sucesso!")
+            } else {
+                println("Erro ao fazer login: ${task.exception?.message}")
+            }
+        }
+}
+
 @Composable
 fun SignUpForm(modifier: Modifier = Modifier) {
     var email by remember { mutableStateOf("") }
@@ -71,7 +83,7 @@ fun SignUpForm(modifier: Modifier = Modifier) {
         TextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Digite o nome email") },
+            label = { Text("Digite o email") },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -88,6 +100,10 @@ fun SignUpForm(modifier: Modifier = Modifier) {
 
         Button(onClick = { createAccount(email, password) }, modifier = Modifier.fillMaxWidth()){
             Text(text = "Criar")
+        }
+
+        Button(onClick = { login(email, password) }, modifier = Modifier.fillMaxWidth()){
+            Text(text = "Entrar")
         }
     }
 }
