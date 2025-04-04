@@ -48,11 +48,28 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-fun createAccount(email: String, password:String){
+fun createAccount(name:String, email: String, password:String, context: android.content.Context){
     val auth = Firebase.auth
+    val db = Firebase.firestore
     auth.createUserWithEmailAndPassword(email, password)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
+                val userId = auth.currentUser?.uid
+
+                val userMap = hashMapOf("nome" to name, "email" to email)
+
+                userId?.let {
+                    db.collection("usuarios").document(it)
+                        .set(userMap)
+                        .addOnSuccessListener {
+                            println("Dados salvos com sucesso!")
+                        }
+                        .addOnFailureListener { e ->
+                            println("Erro ao salvar dados: ${e.message}")
+                        }
+                }
+                val intent = Intent(context, SignInActivity::class.java)
+                context.startActivity(intent)
                 // Conta criada com sucesso
                 println("Usuário criado com sucesso!")
             } else {
@@ -62,14 +79,14 @@ fun createAccount(email: String, password:String){
         }
 }
 
-
-
 @Composable
-fun SignUpForm(modifier: Modifier = Modifier
+fun SignUpScreen(modifier: Modifier = Modifier
     .fillMaxSize()
     .wrapContentSize(Alignment.Center)) {
+    var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     Column (
         modifier = modifier,
@@ -78,6 +95,15 @@ fun SignUpForm(modifier: Modifier = Modifier
        // Spacer(modifier = Modifier.height(64.dp))
         Text("Cadastro de Usuario", fontSize = 30.sp)
         Spacer(modifier = Modifier.height(20.dp))
+
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Digite o nome") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = email,
@@ -97,18 +123,9 @@ fun SignUpForm(modifier: Modifier = Modifier
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = { createAccount(email, password) }, modifier = Modifier.fillMaxWidth()){
+        Button(onClick = { createAccount(name, email, password, context) }, modifier = Modifier.fillMaxWidth()){
             Text(text = "Criar")
         }
-
-        //Forma de mudar para activity sem precisar criar arquivo xml
-        val context = LocalContext.current
-        Button(onClick = {
-            val intent = Intent(context, MainActivity2::class.java)
-            context.startActivity(intent)},  modifier = Modifier.fillMaxWidth()) {
-            Text(text = "Fazer Login")
-        }
-
     }
 }
 
@@ -116,6 +133,6 @@ fun SignUpForm(modifier: Modifier = Modifier
 @Composable
 fun SuperIDApp() {
     SuperIDTheme {
-        SignUpForm()
+        SignUpScreen()
     }
 }

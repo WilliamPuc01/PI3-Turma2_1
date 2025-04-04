@@ -8,11 +8,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,7 +19,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,13 +26,13 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.projetointegrador3.superid.ui.theme.SuperIDTheme
 
-class MainActivity2 : ComponentActivity() {
+class SignInActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             SuperIDTheme {
-                LoginApp()
+                LoginScreenPreview()
             }
         }
     }
@@ -44,8 +41,8 @@ class MainActivity2 : ComponentActivity() {
 
 @Preview
 @Composable
-fun LoginApp(){
-    LoginForm()
+fun LoginScreenPreview(){
+    LoginScreen()
 }
 fun login(email: String, password:String){
     val auth = Firebase.auth
@@ -62,9 +59,10 @@ fun login(email: String, password:String){
 
 
 @Composable
-fun LoginForm(modifier: Modifier = Modifier
+fun LoginScreen(modifier: Modifier = Modifier
     .fillMaxSize()
-    .wrapContentSize(Alignment.Center)){
+    .wrapContentSize(Alignment.Center)
+    ) {
     var email by remember { mutableStateOf("") }
     var senha by remember {mutableStateOf("")}
 
