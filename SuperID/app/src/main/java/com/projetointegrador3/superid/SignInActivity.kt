@@ -1,5 +1,6 @@
 package com.projetointegrador3.superid
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,12 +20,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.projetointegrador3.superid.ui.theme.SuperIDTheme
+
 
 class SignInActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,7 +47,7 @@ class SignInActivity : ComponentActivity() {
 fun LoginScreenPreview(){
     LoginScreen()
 }
-fun login(email: String, password:String){
+fun login(email: String, password:String, context: android.content.Context){
     val auth = Firebase.auth
     auth.signInWithEmailAndPassword(email, password)
         .addOnCompleteListener { task ->
@@ -53,6 +56,8 @@ fun login(email: String, password:String){
             } else {
                 println("Erro ao fazer login: ${task.exception?.message}")
             }
+            val intent = Intent(context, HomeActivity::class.java)
+            context.startActivity(intent)
         }
 }
 
@@ -65,6 +70,7 @@ fun LoginScreen(modifier: Modifier = Modifier
     ) {
     var email by remember { mutableStateOf("") }
     var senha by remember {mutableStateOf("")}
+    val context = LocalContext.current
 
     Column (
         modifier = modifier,
@@ -84,7 +90,7 @@ fun LoginScreen(modifier: Modifier = Modifier
             label = { Text("Senha") }
         )
         Spacer(modifier = Modifier.height(10.dp))
-        Button(onClick = { login(email, senha) }) {
+        Button(onClick = { login(email, senha, context ) }) {
             Text(text = "Entrar")
         }
     }
