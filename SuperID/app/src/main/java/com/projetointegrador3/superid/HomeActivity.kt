@@ -44,7 +44,7 @@ class HomeActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SuperIDTheme {
-                MainHello()
+                HomeScreenPreview()
             }
         }
     }
@@ -52,16 +52,16 @@ class HomeActivity : ComponentActivity() {
 
 @Preview
 @Composable
-fun MainHello() {
+fun HomeScreenPreview() {
     SuperIDTheme {
-        maingreeting()
+        HomeScreen()
     }
 }
 
 
 
 @Composable
-fun maingreeting(modifier: Modifier = Modifier) {
+fun HomeScreen(modifier: Modifier = Modifier) {
 
     Column(
         modifier = modifier.fillMaxSize(),

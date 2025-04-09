@@ -42,7 +42,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SuperIDTheme {
-                WelcomeApp()
+                WelcomeScreenPreview()
             }
         }
     }
@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
 
 
 @Composable
-fun Welcome(modifier: Modifier = Modifier
+fun WelcomeScreen(modifier: Modifier = Modifier
     .fillMaxSize()
     .wrapContentSize(Alignment.Center)) {
     val context = LocalContext.current
@@ -81,8 +81,8 @@ fun Welcome(modifier: Modifier = Modifier
 
 @Preview
 @Composable
-fun WelcomeApp() {
+fun WelcomeScreenPreview() {
     SuperIDTheme {
-        Welcome()
+        WelcomeScreen()
     }
 }
