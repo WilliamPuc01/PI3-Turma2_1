@@ -42,50 +42,18 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SuperIDTheme {
-                SuperIDApp()
+                WelcomeApp()
             }
         }
     }
 }
 
-fun createAccount(name:String, email: String, password:String, context: android.content.Context){
-    val auth = Firebase.auth
-    val db = Firebase.firestore
-    auth.createUserWithEmailAndPassword(email, password)
-        .addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                val userId = auth.currentUser?.uid
 
-                val userMap = hashMapOf("nome" to name, "email" to email)
-
-                userId?.let {
-                    db.collection("usuarios").document(it)
-                        .set(userMap)
-                        .addOnSuccessListener {
-                            println("Dados salvos com sucesso!")
-                        }
-                        .addOnFailureListener { e ->
-                            println("Erro ao salvar dados: ${e.message}")
-                        }
-                }
-                val intent = Intent(context, SignInActivity::class.java)
-                context.startActivity(intent)
-                // Conta criada com sucesso
-                println("Usuário criado com sucesso!")
-            } else {
-                // Erro ao criar a conta
-                println("Erro ao criar conta: ${task.exception?.message}")
-            }
-        }
-}
 
 @Composable
-fun SignUpScreen(modifier: Modifier = Modifier
+fun Welcome(modifier: Modifier = Modifier
     .fillMaxSize()
     .wrapContentSize(Alignment.Center)) {
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
     val context = LocalContext.current
 
     Column (
@@ -93,46 +61,28 @@ fun SignUpScreen(modifier: Modifier = Modifier
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
        // Spacer(modifier = Modifier.height(64.dp))
-        Text("Cadastro de Usuario", fontSize = 30.sp)
+        Text("Bem-Vindo SuperID", fontSize = 30.sp)
         Spacer(modifier = Modifier.height(20.dp))
 
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Digite o nome") },
-            modifier = Modifier.fillMaxWidth()
-        )
+        Button(onClick = { val intent = Intent(context, RegisterActivity::class.java)
+            context.startActivity(intent) }, modifier = Modifier.fillMaxWidth()){
+            Text(text = "Cadastrar")
+        }
+
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Digite o email") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Digite a senha") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(onClick = { createAccount(name, email, password, context) }, modifier = Modifier.fillMaxWidth()){
-            Text(text = "Criar")
+        Button(onClick = {val intent = Intent(context, SignInActivity::class.java)
+            context.startActivity(intent) }, modifier = Modifier.fillMaxWidth()){
+            Text(text = "Fazer Login")
         }
     }
 }
 
 @Preview
 @Composable
-fun SuperIDApp() {
+fun WelcomeApp() {
     SuperIDTheme {
-        SignUpScreen()
+        Welcome()
     }
 }
