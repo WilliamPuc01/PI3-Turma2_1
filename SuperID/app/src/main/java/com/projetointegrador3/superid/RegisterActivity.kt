@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -48,7 +50,7 @@ class RegisterActivity : ComponentActivity() {
     }
 }
 
-fun createAccount(name:String, email: String, password:String, context: android.content.Context){
+fun createAccount(name:String, email: String, password:String, context: android.content.Context, onResult: (String) -> Unit){
     val auth = Firebase.auth
     val db = Firebase.firestore
     auth.createUserWithEmailAndPassword(email, password)
@@ -62,10 +64,10 @@ fun createAccount(name:String, email: String, password:String, context: android.
                     db.collection("usuarios").document(it)
                         .set(userMap)
                         .addOnSuccessListener {
-                            println("Dados salvos com sucesso!")
+                            onResult("Dados salvos com sucesso!")
                         }
                         .addOnFailureListener { e ->
-                            println("Erro ao salvar dados: ${e.message}")
+                            onResult("Erro ao salvar dados: ${e.message}")
                         }
                 }
                 val intent = Intent(context, SignInActivity::class.java)
@@ -74,7 +76,7 @@ fun createAccount(name:String, email: String, password:String, context: android.
                 println("Usuário criado com sucesso!")
             } else {
                 // Erro ao criar a conta
-                println("Erro ao criar conta: ${task.exception?.message}")
+                onResult("Erro ao criar conta: ${task.exception?.message}")
             }
         }
 }
@@ -86,10 +88,14 @@ fun SignUpScreen(modifier: Modifier = Modifier
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+
     val context = LocalContext.current
 
-    Column (
-        modifier = modifier,
+    Column(
+        modifier = modifier
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // Spacer(modifier = Modifier.height(64.dp))
@@ -123,8 +129,16 @@ fun SignUpScreen(modifier: Modifier = Modifier
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = { createAccount(name, email, password, context) }, modifier = Modifier.fillMaxWidth()){
+        Button(onClick = {
+            createAccount(name, email, password, context) { result -> message = result }
+        }, modifier = Modifier.fillMaxWidth()) {
             Text(text = "Criar")
+        }
+
+        // Mostra mensagens para o usuário
+        if (message.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(text = message)
         }
     }
 }

@@ -60,7 +60,7 @@ fun WelcomeScreen(modifier: Modifier = Modifier
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-       // Spacer(modifier = Modifier.height(64.dp))
+
         Text("Bem-Vindo SuperID", fontSize = 30.sp)
         Spacer(modifier = Modifier.height(20.dp))
 
