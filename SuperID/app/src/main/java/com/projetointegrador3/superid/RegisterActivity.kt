@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -76,7 +77,16 @@ fun createAccount(name:String, email: String, password:String, context: android.
                 println("Usuário criado com sucesso!")
             } else {
                 // Erro ao criar a conta
-                onResult("Erro ao criar conta: ${task.exception?.message}")
+                val exception = task.exception
+                val errorMessage =
+                    when ((exception as? com.google.firebase.auth.FirebaseAuthException)?.errorCode) {
+                        "ERROR_EMAIL_ALREADY_IN_USE" -> "Este e-mail já está em uso."
+                        "ERROR_INVALID_EMAIL" -> "E-mail inválido."
+                        "ERROR_WEAK_PASSWORD" -> "A senha deve ter pelo menos 6 caracteres."
+                        else -> "Erro ao criar conta: ${exception?.localizedMessage}"
+                    }
+                // Mostra a mensagem na tela
+                onResult(errorMessage)
             }
         }
 }
@@ -129,16 +139,18 @@ fun SignUpScreen(modifier: Modifier = Modifier
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = {
-            createAccount(name, email, password, context) { result -> message = result }
-        }, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = { createAccount(name, email, password, context) { error -> message = error }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text(text = "Criar")
         }
 
         // Mostra mensagens para o usuário
         if (message.isNotEmpty()) {
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = message)
+            Text(text = message, color = Color.Red)
         }
     }
 }
