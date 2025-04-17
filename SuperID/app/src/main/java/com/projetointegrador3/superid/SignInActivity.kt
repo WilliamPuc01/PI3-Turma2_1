@@ -60,7 +60,14 @@ fun login(email: String, password:String, context: android.content.Context, onRe
                 val intent = Intent(context, HomeActivity::class.java)
                 context.startActivity(intent)
             } else {
-                onResult("Erro ao fazer login: ${task.exception?.message}")
+                val exception = task.exception
+                val errorMessage = when ((exception as? com.google.firebase.auth.FirebaseAuthException)?.errorCode) {
+                    "ERROR_INVALID_EMAIL" -> "E-mail inválido."
+                    "ERROR_USER_NOT_FOUND" -> "Usuário não encontrado."
+                    "ERROR_WRONG_PASSWORD" -> "Senha incorreta."
+                    else -> "Erro ao fazer login: ${exception?.localizedMessage}"
+                }
+                onResult(errorMessage)
             }
         }
 }
@@ -96,9 +103,11 @@ fun LoginScreen(modifier: Modifier = Modifier
             onValueChange = { password = it },
             label = { Text("Senha") }
         )
+
         Spacer(modifier = Modifier.height(10.dp))
+
         Button(onClick = {
-            login(email, password, context) { result -> message = result }
+            login(email, password, context) { error -> message = error }
         }, modifier = Modifier.fillMaxWidth()) {
             Text(text = "Entrar")
         }
