@@ -63,9 +63,8 @@ fun login(email: String, password:String, context: android.content.Context, onRe
                 val exception = task.exception
                 val errorMessage = when ((exception as? com.google.firebase.auth.FirebaseAuthException)?.errorCode) {
                     "ERROR_INVALID_EMAIL" -> "E-mail inválido."
-                    "ERROR_USER_NOT_FOUND" -> "Usuário não encontrado."
                     "ERROR_WRONG_PASSWORD" -> "Senha incorreta."
-                    else -> "Erro ao fazer login: ${exception?.localizedMessage}"
+                    else -> "Erro ao fazer login"
                 }
                 onResult(errorMessage)
             }
