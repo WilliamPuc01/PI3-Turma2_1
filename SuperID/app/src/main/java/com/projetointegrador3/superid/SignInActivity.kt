@@ -111,23 +111,13 @@ fun LoginScreen(modifier: Modifier = Modifier
                     .fillMaxSize()
                     .alpha(0.5f)
             )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .background(
-                        color = Color.Black.copy(alpha = 0.4f), // Fundo preto semi-transparente
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                    .padding(24.dp)
-            ) {
                 Column(
                     modifier = modifier
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text("Login", fontSize = 30.sp)
+                    Text("Login", fontSize = 30.sp, color = Color.White)
                     Spacer(modifier = Modifier.height(20.dp))
                     OutlinedTextField(
                         value = email,
@@ -159,7 +149,6 @@ fun LoginScreen(modifier: Modifier = Modifier
                         Text(text = message)
                     }
                 }
-            }
         }
     }
 }
