@@ -109,7 +109,7 @@ fun LoginScreen(modifier: Modifier = Modifier
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .alpha(0.5f)
+                    .alpha(1.0f)
             )
                 Column(
                     modifier = modifier
@@ -146,7 +146,7 @@ fun LoginScreen(modifier: Modifier = Modifier
                     // Mostra mensagens ao usuário
                     if (message.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text(text = message)
+                        Text(text = message, color = Color.Red)
                     }
                 }
         }
