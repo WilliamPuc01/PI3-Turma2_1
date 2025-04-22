@@ -64,35 +64,44 @@ fun createAccount(name:String, email: String, password:String, context: android.
     auth.createUserWithEmailAndPassword(email, password)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                val userId = auth.currentUser?.uid
+                val user = auth.currentUser
+                val userId = user?.uid
 
+                // Envia o e-mail de verificação
+                user?.sendEmailVerification()
+                    ?.addOnCompleteListener { verifyTask ->
+                        if (verifyTask.isSuccessful) {
+                            onResult("Conta criada! Verifique seu e-mail para ativá-la.")
+                        } else {
+                            onResult("Conta criada, mas falha ao enviar e-mail de verificação.")
+                        }
+                    }
+
+                // Salva dados no Firestore
                 val userMap = hashMapOf("nome" to name, "email" to email)
-
                 userId?.let {
                     db.collection("usuarios").document(it)
                         .set(userMap)
                         .addOnSuccessListener {
-                            onResult("Dados salvos com sucesso!")
+                            println("Dados do usuário salvos com sucesso!")
                         }
                         .addOnFailureListener { e ->
-                            onResult("Erro ao salvar dados: ${e.message}")
+                            println("Erro ao salvar dados: ${e.message}")
                         }
                 }
+
+                // Redireciona para tela de login
                 val intent = Intent(context, SignInActivity::class.java)
                 context.startActivity(intent)
-                // Conta criada com sucesso
-                println("Usuário criado com sucesso!")
+
             } else {
-                // Erro ao criar a conta
                 val exception = task.exception
-                val errorMessage =
-                    when ((exception as? com.google.firebase.auth.FirebaseAuthException)?.errorCode) {
-                        "ERROR_EMAIL_ALREADY_IN_USE" -> "Este e-mail já está em uso."
-                        "ERROR_INVALID_EMAIL" -> "E-mail inválido."
-                        "ERROR_WEAK_PASSWORD" -> "A senha deve ter pelo menos 6 caracteres."
-                        else -> "Erro ao criar conta: ${exception?.localizedMessage}"
-                    }
-                // Mostra a mensagem na tela
+                val errorMessage = when ((exception as? com.google.firebase.auth.FirebaseAuthException)?.errorCode) {
+                    "ERROR_EMAIL_ALREADY_IN_USE" -> "Este e-mail já está em uso."
+                    "ERROR_INVALID_EMAIL" -> "E-mail inválido."
+                    "ERROR_WEAK_PASSWORD" -> "A senha deve ter pelo menos 6 caracteres."
+                    else -> "Erro ao criar conta: ${exception?.localizedMessage}"
+                }
                 onResult(errorMessage)
             }
         }
@@ -125,8 +134,9 @@ fun SignUpScreen(modifier: Modifier = Modifier
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .alpha(0.5f)
+                .alpha(1.0f)
         )
+        }
         Column(
             modifier = modifier
                 .padding(16.dp)
@@ -179,10 +189,8 @@ fun SignUpScreen(modifier: Modifier = Modifier
             }
         }
     }
-    }
-
-
 }
+
 
 @Preview
 @Composable
