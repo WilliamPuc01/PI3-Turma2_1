@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -199,7 +200,7 @@ fun LoginScreen(modifier: Modifier = Modifier
 
 
                     TextButton(onClick = { showForgotPasswordDialog = true }) {
-                        Text("Esqueci minha senha", color = Color.White)
+                        Text("Esqueci minha senha", color = Color.White, style = MaterialTheme.typography.bodyMedium.copy(textDecoration = TextDecoration.Underline))
                     }
 
                     Spacer(modifier = Modifier.height(1.dp))
@@ -210,7 +211,8 @@ fun LoginScreen(modifier: Modifier = Modifier
                             context.startActivity(intent)
                         }
                     ) {
-                        Text("Não tem conta? Criar conta", color = Color.White)
+                        Text("Não tem conta? ", color = Color.White)
+                        Text("Criar conta", color = Color.White, style = MaterialTheme.typography.bodyMedium.copy(textDecoration = TextDecoration.Underline))
                     }
 
                     Button(
