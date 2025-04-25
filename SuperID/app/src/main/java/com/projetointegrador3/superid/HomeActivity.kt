@@ -194,7 +194,8 @@ val categories = listOf(
     "Sites Web" to Icons.Default.Email,
     "Aplicativos" to Icons.Default.Favorite,
     "Teclados Físicos" to Icons.Default.Menu,
-    "Códigos" to Icons.Default.Lock
+    "Códigos" to Icons.Default.Lock,
+    "Adicionar Categoria" to Icons.Default.Add
 )
 
 
@@ -228,7 +229,7 @@ fun Cards(category: Pair<String, ImageVector>) {
                 imageVector = category.second,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(if (category.first == "Adicionar Categoria") 50.dp else 40.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
