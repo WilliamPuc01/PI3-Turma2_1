@@ -88,7 +88,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 
-
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -109,6 +108,7 @@ class HomeActivity : ComponentActivity() {
 @Preview
 
 fun HomeScreen() {
+    val context = LocalContext.current
     // Só alterar aqui se quiser mudar o tema do app!!!
 
     val customColors = darkColorScheme(
@@ -182,7 +182,7 @@ fun HomeScreen() {
             ) {
                 //transforma os itens da lista de categorias em um card
                 items(categories) { category ->
-                    Cards(category)
+                    Cards(category, context)
                 }
             }
         }
@@ -201,10 +201,14 @@ val categories = listOf(
 
 //Definição dos CARDS
 @Composable
-fun Cards(category: Pair<String, ImageVector>) {
+fun Cards(category: Pair<String, ImageVector>, context: android.content.Context) {
     Card(
 
-        modifier = Modifier.clickable { /* navegação */ }
+        modifier = Modifier.clickable { if (category.first == "Adicionar Categoria") {
+            context.startActivity(Intent(context, AddCategoryActivity::class.java))
+        } else {
+            // Aqui você pode colocar ações para as outras categorias depois, se quiser
+        } }
             .size(160.dp) // Tamanho quadrado
             .padding(8.dp),
         colors = CardDefaults.cardColors(
