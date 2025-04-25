@@ -1,6 +1,8 @@
 package com.projetointegrador3.superid
 
+import android.content.Context
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -28,6 +30,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.navigation.compose.rememberNavController
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class AddCategoryActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,6 +41,38 @@ class AddCategoryActivity : ComponentActivity() {
         }
     }
 }
+
+
+fun saveCategory(categoryName: String, context: Context, onResult: (Boolean) -> Unit = {}) {
+    val db = FirebaseFirestore.getInstance()
+    val user = FirebaseAuth.getInstance().currentUser
+
+    if (user != null) {
+        val userUid = user.uid
+
+        val categoria = hashMapOf(
+            "nome" to categoryName
+        )
+
+        db.collection("usuarios")
+            .document(userUid) // UID correto do usuário
+            .collection("categorias")
+            .document(categoryName) // Nome da categoria como ID
+            .set(categoria)
+            .addOnSuccessListener {
+                Toast.makeText(context, "Categoria salva com sucesso!", Toast.LENGTH_SHORT).show()
+                onResult(true)
+            }
+            .addOnFailureListener {
+                Toast.makeText(context, "Erro ao salvar categoria", Toast.LENGTH_SHORT).show()
+                onResult(false)
+            }
+    } else {
+        Toast.makeText(context, "Usuário não autenticado", Toast.LENGTH_SHORT).show()
+        onResult(false)
+    }
+}
+
 
 @Preview
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,7 +104,8 @@ fun AddCategoryScreen() {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Voltar",
-                tint = Color(0xFFFFC107)
+                tint = Color(0xFFFFC107),
+                modifier = Modifier.size(32.dp)
             )
         }
 
@@ -87,7 +124,7 @@ fun AddCategoryScreen() {
                     fontFamily = FontFamily.SansSerif,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFFFC107) // Dourado
+                    color = Color.White
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -114,6 +151,11 @@ fun AddCategoryScreen() {
                 Button(
                     onClick = {
                         // Aqui ce vai implementar a logica nier
+                        if (categoryName.isNotBlank()) {
+                            saveCategory(categoryName, context)
+                        } else {
+                            Toast.makeText(context, "Nome da categoria não pode estar vazio", Toast.LENGTH_SHORT).show()
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFFFC107), // Botão dourado

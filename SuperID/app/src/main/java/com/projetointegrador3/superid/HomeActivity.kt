@@ -106,7 +106,6 @@ class HomeActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 @Preview
-
 fun HomeScreen() {
     val context = LocalContext.current
     // Só alterar aqui se quiser mudar o tema do app!!!
