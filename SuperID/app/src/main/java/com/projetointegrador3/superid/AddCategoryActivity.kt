@@ -1,6 +1,7 @@
 package com.projetointegrador3.superid
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -27,9 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Icon
-import androidx.navigation.compose.rememberNavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -50,18 +49,17 @@ fun saveCategory(categoryName: String, context: Context, onResult: (Boolean) -> 
     if (user != null) {
         val userUid = user.uid
 
-        val categoria = hashMapOf(
-            "nome" to categoryName
-        )
-
+        // Salva o nome da categoria para futuramente adicionar senhas
         db.collection("usuarios")
             .document(userUid) // UID correto do usuário
             .collection("categorias")
             .document(categoryName) // Nome da categoria como ID
-            .set(categoria)
+            .set(hashMapOf<String, Any>())
             .addOnSuccessListener {
                 Toast.makeText(context, "Categoria salva com sucesso!", Toast.LENGTH_SHORT).show()
                 onResult(true)
+                val intent = Intent(context, HomeActivity::class.java)
+                context.startActivity(intent)
             }
             .addOnFailureListener {
                 Toast.makeText(context, "Erro ao salvar categoria", Toast.LENGTH_SHORT).show()
@@ -74,13 +72,71 @@ fun saveCategory(categoryName: String, context: Context, onResult: (Boolean) -> 
 }
 
 
+fun checkIfCategoryExists(
+    categoryName: String,
+    context: Context,
+    onExists: () -> Unit,
+    onNotExists: () -> Unit
+) {
+    val db = FirebaseFirestore.getInstance()
+    val user = FirebaseAuth.getInstance().currentUser
+
+    if (user != null) {
+        val userUid = user.uid
+        val docRef = db.collection("usuarios")
+            .document(userUid)
+            .collection("categorias")
+            .document(categoryName)
+
+        docRef.get().addOnSuccessListener { document ->
+            if (document.exists()) {
+                onExists()
+            } else {
+                onNotExists()
+            }
+        }.addOnFailureListener {
+            Toast.makeText(context, "Erro ao verificar categoria", Toast.LENGTH_SHORT).show()
+        }
+    } else {
+        Toast.makeText(context, "Usuário não autenticado", Toast.LENGTH_SHORT).show()
+    }
+}
+
+// Caso o usuário tente criar uma categoria com um nome já existente
+@Composable
+fun ConfirmDialog(
+    showDialog: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { onDismiss() },
+            confirmButton = {
+                TextButton(onClick = onConfirm) {
+                    Text("Confirmar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancelar")
+                }
+            },
+            title = { Text("Categoria já existe") },
+            text = { Text("Já existe uma categoria com esse nome. Deseja criar mesmo assim?") }
+        )
+    }
+}
+
+
 @Preview
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddCategoryScreen() {
     var categoryName by remember { mutableStateOf("") }
+    var showDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val navController = rememberNavController()
+
 
     Box(
         modifier = Modifier
@@ -91,6 +147,7 @@ fun AddCategoryScreen() {
             painter = painterResource(id = R.drawable.fundo),
             contentDescription = null,
             contentScale = ContentScale.Crop,
+            alpha = 0.5f,
             modifier = Modifier.fillMaxSize()
         )
 
@@ -152,7 +209,9 @@ fun AddCategoryScreen() {
                     onClick = {
                         // Aqui ce vai implementar a logica nier
                         if (categoryName.isNotBlank()) {
-                            saveCategory(categoryName, context)
+                            checkIfCategoryExists(categoryName, context, onExists = { showDialog = true },
+                                onNotExists = { saveCategory(categoryName, context) }
+                            )
                         } else {
                             Toast.makeText(context, "Nome da categoria não pode estar vazio", Toast.LENGTH_SHORT).show()
                         }
@@ -169,6 +228,16 @@ fun AddCategoryScreen() {
                     Text(text = "Criar", fontSize = 18.sp)
                 }
             }
-        }
+        // Dialogo de confirmação
+        ConfirmDialog(
+            showDialog = showDialog,
+            onDismiss = { showDialog = false },
+            onConfirm = {
+                saveCategory(categoryName, context)
+                showDialog = false
+            }
+        )
     }
+}
+
 
