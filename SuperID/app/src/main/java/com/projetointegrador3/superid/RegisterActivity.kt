@@ -81,11 +81,12 @@ fun createAccount(name:String, email: String, password:String, context: android.
 
                 // Salva dados no Firestore
                 val userMap = hashMapOf("nome" to name, "email" to email)
-                userId?.let {
-                    db.collection("usuarios").document(it)
+                userId?.let {id ->
+                    db.collection("usuarios").document(id)
                         .set(userMap)
                         .addOnSuccessListener {
                             println("Dados do usuário salvos com sucesso!")
+                            createDefaultCategories(id)
                         }
                         .addOnFailureListener { e ->
                             println("Erro ao salvar dados: ${e.message}")
@@ -107,6 +108,19 @@ fun createAccount(name:String, email: String, password:String, context: android.
                 onResult(errorMessage)
             }
         }
+}
+
+fun createDefaultCategories(userId: String) {
+    val db = Firebase.firestore
+    val categorias = listOf("Sites Web", "Aplicativos", "Teclados Físicos")
+
+    categorias.forEach { categoryName ->
+        db.collection("usuarios")
+            .document(userId)
+            .collection("categorias")
+            .document(categoryName)
+            .set(hashMapOf<String, Any>()) // Sem campos no começo
+    }
 }
 
 @Composable
