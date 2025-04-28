@@ -5,20 +5,26 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,7 +32,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,29 +66,61 @@ fun createAccount(name:String, email: String, password:String, context: android.
     auth.createUserWithEmailAndPassword(email, password)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                val userId = auth.currentUser?.uid
+                val user = auth.currentUser
+                val userId = user?.uid
 
+                // Envia o e-mail de verificação
+                user?.sendEmailVerification()
+                    ?.addOnCompleteListener { verifyTask ->
+                        if (verifyTask.isSuccessful) {
+                            onResult("Conta criada! Verifique seu e-mail para ativá-la.")
+                        } else {
+                            onResult("Conta criada, mas falha ao enviar e-mail de verificação.")
+                        }
+                    }
+
+                // Salva dados no Firestore
                 val userMap = hashMapOf("nome" to name, "email" to email)
-
-                userId?.let {
-                    db.collection("usuarios").document(it)
+                userId?.let {id ->
+                    db.collection("usuarios").document(id)
                         .set(userMap)
                         .addOnSuccessListener {
-                            onResult("Dados salvos com sucesso!")
+                            println("Dados do usuário salvos com sucesso!")
+                            createDefaultCategories(id)
                         }
                         .addOnFailureListener { e ->
-                            onResult("Erro ao salvar dados: ${e.message}")
+                            println("Erro ao salvar dados: ${e.message}")
                         }
                 }
+
+                // Redireciona para tela de login
                 val intent = Intent(context, SignInActivity::class.java)
                 context.startActivity(intent)
-                // Conta criada com sucesso
-                println("Usuário criado com sucesso!")
+
             } else {
-                // Erro ao criar a conta
-                onResult("Erro ao criar conta: ${task.exception?.message}")
+                val exception = task.exception
+                val errorMessage = when ((exception as? com.google.firebase.auth.FirebaseAuthException)?.errorCode) {
+                    "ERROR_EMAIL_ALREADY_IN_USE" -> "Este e-mail já está em uso."
+                    "ERROR_INVALID_EMAIL" -> "E-mail inválido."
+                    "ERROR_WEAK_PASSWORD" -> "A senha deve ter pelo menos 6 caracteres."
+                    else -> "Erro ao criar conta: ${exception?.localizedMessage}"
+                }
+                onResult(errorMessage)
             }
         }
+}
+
+fun createDefaultCategories(userId: String) {
+    val db = Firebase.firestore
+    val categorias = listOf("Sites Web", "Aplicativos", "Teclados Físicos")
+
+    categorias.forEach { categoryName ->
+        db.collection("usuarios")
+            .document(userId)
+            .collection("categorias")
+            .document(categoryName)
+            .set(hashMapOf<String, Any>()) // Sem campos no começo
+    }
 }
 
 @Composable
@@ -91,57 +133,82 @@ fun SignUpScreen(modifier: Modifier = Modifier
     var message by remember { mutableStateOf("") }
 
     val context = LocalContext.current
+    val customColors = darkColorScheme(
+        primary = Color(0xFFD4AF37), // Dourado
+        surface = Color(0xFF121212), // Preto
+        onSurface = Color.White
+    )
 
-    Column(
-        modifier = modifier
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    MaterialTheme(colorScheme = customColors) {
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
-        // Spacer(modifier = Modifier.height(64.dp))
-        Text("Cadastro de Usuario", fontSize = 30.sp)
-        Spacer(modifier = Modifier.height(20.dp))
-
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Digite o nome") },
-            modifier = Modifier.fillMaxWidth()
+        // Imagem de fundo
+        Image(
+            painter = painterResource(R.drawable.fundo),
+            contentDescription = "Fundo do app",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha(1.0f)
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Digite o email") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Digite a senha") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(onClick = {
-            createAccount(name, email, password, context) { result -> message = result }
-        }, modifier = Modifier.fillMaxWidth()) {
-            Text(text = "Criar")
         }
+        Column(
+            modifier = modifier
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
+                .imePadding(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Spacer(modifier = Modifier.height(100.dp))
+            Text("Cadastro de Usuário", fontSize = 30.sp, color = Color.White)
+            Spacer(modifier = Modifier.height(20.dp))
 
-        // Mostra mensagens para o usuário
-        if (message.isNotEmpty()) {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Digite o nome") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = message)
+
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Digite o email") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Digite a senha") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = { createAccount(name, email, password, context) { error -> message = error }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(text = "Criar")
+            }
+
+            // Mostra mensagens para o usuário
+            if (message.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(text = message, color = Color.Red)
+            }
         }
     }
 }
+
 
 @Preview
 @Composable
