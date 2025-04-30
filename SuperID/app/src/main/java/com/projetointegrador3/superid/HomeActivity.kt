@@ -1,8 +1,12 @@
 
 package com.projetointegrador3.superid
 
+import android.content.ContentValues.TAG
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -14,18 +18,21 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,8 +41,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -47,13 +61,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import com.projetointegrador3.superid.ui.theme.SuperIDTheme
-
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         enableEdgeToEdge()
         setContent {
             SuperIDTheme {
@@ -65,25 +82,30 @@ class HomeActivity : ComponentActivity() {
 
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 @Preview
 fun HomeScreen() {
+    var searchText by remember { mutableStateOf("") }
     val context = LocalContext.current
-    // Só alterar aqui se quiser mudar o tema do app!!!
+    val categoriasState = remember { mutableStateOf<List<String>>(emptyList()) }
+
+    // Inicia o listener do Firestore
+    LaunchedEffect(Unit) {
+        listenToCategories(context) { categorias ->
+            categoriasState.value = categorias
+        }
+    }
 
     val customColors = darkColorScheme(
-        primary = Color(0xFFD4AF37), // Dourado
-        surface = Color(0xFF121212), // Preto
+        primary = Color(0xFFD4AF37),
+        surface = Color(0xFF121212),
         onSurface = Color.White
     )
 
     MaterialTheme(colorScheme = customColors) {
-        //ESTRUTURA BASICA DA TELA HOME DO APP
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-
-            //cabeçalho com o logo do app
             topBar = {
                 Column {
                     Image(
@@ -97,34 +119,26 @@ fun HomeScreen() {
                     Text(
                         "Senhas",
                         style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(
-                            horizontal = 16.dp,
-                        )
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                    SearchBar(
+                        query = searchText,
+                        onQueryChange = { searchText = it }
                     )
                 }
-
-            }, floatingActionButton = {
+            },
+            floatingActionButton = {
                 FloatingActionButton(
-                    onClick = { /* Todo: funcionalide de adicionar senhas */ },
+                    onClick = { /* funcionalidade futura */ },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = Color.Black
                 ) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "Adicionar senha",
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Icon(Icons.Default.Add, contentDescription = "Adicionar senha")
                 }
             }
-        )
-        
-        //CONTEUDO PRINCIPAL
-        { padding ->
+        ) { padding ->
 
-            Box(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Imagem de fundo
+            Box(modifier = Modifier.fillMaxSize()) {
                 Image(
                     painter = painterResource(R.drawable.fundo),
                     contentDescription = "Fundo do app",
@@ -132,8 +146,9 @@ fun HomeScreen() {
                     modifier = Modifier
                         .fillMaxSize()
                         .alpha(0.2f)
-                )}
-            // Grade das categorias num formato 2x2
+                )
+            }
+
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier.padding(padding),
@@ -141,23 +156,32 @@ fun HomeScreen() {
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                //transforma os itens da lista de categorias em um card
-                items(categories) { category ->
-                    Cards(category, context)
+                // Lista dinâmica do Firestore
+                items(categoriasState.value) { nomeCategoria ->
+                    val icon = getIconForCategory(nomeCategoria)
+                    Cards(nomeCategoria to icon, context)
+                }
+
+                // Card para adicionar nova categoria
+                item {
+                    Cards("Adicionar Categoria" to Icons.Default.Add, context)
                 }
             }
         }
     }
 }
 
-// Categorias do app e seus icones, só add aqui se quiser uma nova
-val categories = listOf(
-    "Sites Web" to Icons.Default.Email,
-    "Aplicativos" to Icons.Default.Favorite,
-    "Teclados Físicos" to Icons.Default.Menu,
-    "Códigos" to Icons.Default.Lock,
-    "Adicionar Categoria" to Icons.Default.Add
-)
+fun getIconForCategory(nome: String): ImageVector {
+    return when (nome) {
+        "Sites Web" -> Icons.Default.Email
+        "Aplicativos" -> Icons.Default.Favorite
+        "Teclados Fisicos" -> Icons.Default.Menu
+        "Codigos" -> Icons.Default.Lock
+        else -> Icons.Default.Lock // Ícone padrão
+    }
+}
+
+
 
 
 //Definição dos CARDS
@@ -181,8 +205,8 @@ fun Cards(category: Pair<String, ImageVector>, context: android.content.Context)
             pressedElevation = 4.dp
         )
     )
-        //Conteudo do CARD
-        {
+    //Conteudo do CARD
+    {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -205,3 +229,67 @@ fun Cards(category: Pair<String, ImageVector>, context: android.content.Context)
         }
     }
 }
+
+fun listenToCategories(context: Context, onDataChange: (List<String>) -> Unit) {
+    val db = FirebaseFirestore.getInstance()
+    val user = FirebaseAuth.getInstance().currentUser
+
+    if (user != null) {
+        val userUid = user.uid
+
+        db.collection("usuarios")
+            .document(userUid)
+            .collection("categorias")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Toast.makeText(context, "Erro ao ouvir categorias: ${error.message}", Toast.LENGTH_SHORT).show()
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null && !snapshot.isEmpty) {
+                    val categorias = snapshot.documents.map { it.id } // Pega o nome da categoria (ID do documento)
+                    onDataChange(categorias)
+                } else {
+                    onDataChange(emptyList())
+                }
+            }
+    } else {
+        Toast.makeText(context, "Usuário não autenticado", Toast.LENGTH_SHORT).show()
+    }
+}
+
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "Buscar..."
+) {
+    TextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        placeholder = { Text(placeholder) },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Ícone de busca"
+            )
+        },
+        singleLine = true,
+        shape = RoundedCornerShape(8.dp),
+        colors = TextFieldDefaults.colors(
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            focusedContainerColor = MaterialTheme.colorScheme.surface
+        )
+
+    )
+}
+
+
+
