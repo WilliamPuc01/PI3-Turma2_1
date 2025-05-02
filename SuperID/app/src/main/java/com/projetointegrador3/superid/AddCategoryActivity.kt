@@ -3,11 +3,13 @@ package com.projetointegrador3.superid
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.provider.CalendarContract.Colors
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -31,12 +33,15 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.projetointegrador3.superid.ui.theme.SuperIDTheme
 
 class AddCategoryActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            AddCategoryScreen()
+            SuperIDTheme {
+                AddCategoryScreen()
+            }
         }
     }
 }
@@ -137,19 +142,17 @@ fun AddCategoryScreen() {
     var showDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
+    //variaveis de padronização do tema e fundo
+    val colors = MaterialTheme.colorScheme
+    val isDarkTheme = isSystemInDarkTheme()
+
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF1E1E1E))
+            .background(colors.background)
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.fundo),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            alpha = 0.5f,
-            modifier = Modifier.fillMaxSize()
-        )
+        BackgroundImage()
 
         // Ícone de voltar
         IconButton(
@@ -161,7 +164,7 @@ fun AddCategoryScreen() {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Voltar",
-                tint = Color(0xFFFFC107),
+                tint = colors.primary,
                 modifier = Modifier.size(32.dp)
             )
         }
@@ -181,7 +184,7 @@ fun AddCategoryScreen() {
                     fontFamily = FontFamily.SansSerif,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = colors.onBackground
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -190,11 +193,11 @@ fun AddCategoryScreen() {
                     value = categoryName,
                     onValueChange = { categoryName = it },
                     placeholder = {
-                        Text(text = "Nome da categoria", color = Color.LightGray)
+                        Text(text = "Nome da categoria", color = colors.onBackground)
                     },
                     colors = TextFieldDefaults.textFieldColors(
-                        containerColor = Color(0xFF2C2C2C),
-                        cursorColor = Color(0xFFFFC107),
+                        containerColor = colors.surfaceVariant,
+                        cursorColor = colors.primary,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         focusedTextColor = Color.White
@@ -217,8 +220,8 @@ fun AddCategoryScreen() {
                         }
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFFFC107), // Botão dourado
-                        contentColor = Color.Black // Texto preto
+                        containerColor = colors.primary,
+                        contentColor = colors.onPrimary
                     ),
                     shape = RoundedCornerShape(50.dp),
                     modifier = Modifier

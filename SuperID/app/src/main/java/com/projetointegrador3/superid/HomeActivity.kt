@@ -11,6 +11,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -118,13 +119,8 @@ fun HomeScreen(navController: NavController) {
         }
     }
 
-    val customColors = darkColorScheme(
-        primary = Color(0xFFD4AF37),
-        surface = Color(0xFF121212),
-        onSurface = Color.White
-    )
 
-    MaterialTheme(colorScheme = customColors) {
+    MaterialTheme{
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
@@ -200,14 +196,7 @@ fun HomeScreen(navController: NavController) {
         ) { padding ->
 
             Box(modifier = Modifier.fillMaxSize()) {
-                Image(
-                    painter = painterResource(R.drawable.fundo),
-                    contentDescription = "Fundo do app",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .alpha(0.2f)
-                )
+            BackgroundImage()
             }
 
             LazyVerticalGrid(
@@ -415,107 +404,118 @@ fun CategoryDetailScreen(navController: NavController, categoryName: String) {
     val senhasState = remember { mutableStateOf<List<Triple<String?, String?, String?>>>(emptyList()) }
     val showAddSenhaDialog = remember { mutableStateOf(false) }
 
+    //variavel de padronização do tema
+    val colors = MaterialTheme.colorScheme
 
-    val customColors = darkColorScheme(
-        primary = Color(0xFFD4AF37),
-        surface = Color(0xFF121212),
-        onSurface = Color.White
-    )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.background)
+    ) {
+        BackgroundImage()
 
-    // Aplicando o tema
-    MaterialTheme(colorScheme = customColors) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Image(
-                painter = painterResource(R.drawable.fundo),
-                contentDescription = "Fundo do app",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .alpha(1.0f)
-            )
+        // Carregar senhas ao entrar
+        LaunchedEffect(categoryName) {
+            loadSenhas(context, categoryName) { senhas ->
+                senhasState.value = senhas
+            }
+        }
 
-            // Carregar senhas
-            LaunchedEffect(categoryName) {
-                loadSenhas(context, categoryName) { senhas ->
-                    senhasState.value = senhas
+        Scaffold(
+            containerColor = Color.Transparent,
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = { showAddSenhaDialog.value = true },
+                    containerColor = colors.primary,
+                    contentColor = colors.onPrimary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Adicionar senha")
                 }
             }
-
-            // Exibir a tela com FAB para adicionar senha
-            Scaffold(
-                floatingActionButton = {
-                    FloatingActionButton(
-                        onClick = { showAddSenhaDialog.value = true },
-                        containerColor = MaterialTheme.colorScheme.primary
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Adicionar senha")
-                    }
-                }
-            ) { paddingValues ->
-
-                Column(
-                    modifier = Modifier
-                        .padding(paddingValues)
-                        .padding(16.dp)
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .padding(paddingValues)
+                    .padding(16.dp)
+            ) {
+                // Botão de voltar
+                IconButton(
+                    onClick = { navController.popBackStack() },
+                    modifier = Modifier.padding(8.dp)
                 ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Voltar",
+                        tint = colors.primary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
 
-                    // Ícone de voltar
-                    IconButton(
-                        onClick = { navController.popBackStack() },
-                        modifier = Modifier
-                            .padding(16.dp)
-                    ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Voltar",
-                            tint = Color(0xFFFFC107),
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
+                Text(
+                    "Categoria: $categoryName",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = colors.onSurface
+                )
+                Spacer(modifier = Modifier.height(16.dp))
 
-                    Text("Categoria: $categoryName", style = MaterialTheme.typography.titleLarge)
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    if (senhasState.value.isEmpty()) {
-                        Text("Nenhuma senha cadastrada ainda.")
-                    } else {
-                        senhasState.value.forEach { (usuario, descricao, senha) ->
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp)
-                            ) {
-                                // Exibe cada elemento da senha em uma linha separada
-                                Text("Usuário: ${usuario ?: "-"}", style = MaterialTheme.typography.bodyMedium)
+                if (senhasState.value.isEmpty()) {
+                    Text("Nenhuma senha cadastrada ainda.", color = colors.onSurface)
+                } else {
+                    senhasState.value.forEach { (usuario, descricao, senha) ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = colors.surface
+                            )
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    "Usuário: ${usuario ?: "-"}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = colors.onSurface
+                                )
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("Descrição: ${descricao ?: "-"}", style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    "Descrição: ${descricao ?: "-"}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = colors.onSurface
+                                )
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("Senha: ${senha ?: "-"}", style = MaterialTheme.typography.bodyMedium)
-                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    "Senha: ${senha ?: "-"}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = colors.onSurface
+                                )
                             }
                         }
                     }
                 }
             }
+        }
 
-            // Exibir o Dialog para adicionar senha
-            if (showAddSenhaDialog.value) {
-                AddSenhaDialog(
-                    categoryName = categoryName,
-                    onDismiss = { showAddSenhaDialog.value = false },
-                    onSave = { usuario, descricao, senha ->
-                        saveSenha(
-                            context = context,
-                            categoryName = categoryName,
-                            usuario = usuario,
-                            descricao = descricao,
-                            senha = senha
-                        ) {
-                            // Recarregar senhas após salvar
-                            showAddSenhaDialog.value = false
+        // Diálogo de adicionar senha
+        if (showAddSenhaDialog.value) {
+            AddSenhaDialog(
+                categoryName = categoryName,
+                onDismiss = { showAddSenhaDialog.value = false },
+                onSave = { usuario, descricao, senha ->
+                    saveSenha(
+                        context = context,
+                        categoryName = categoryName,
+                        usuario = usuario,
+                        descricao = descricao,
+                        senha = senha
+                    ) {
+                        showAddSenhaDialog.value = false
+                        // Recarrega as senhas
+                        loadSenhas(context, categoryName) { senhas ->
+                            senhasState.value = senhas
                         }
                     }
-                )
-            }
+                }
+            )
         }
     }
 }
@@ -572,5 +572,24 @@ fun AddSenhaDialog(
                 Text("Cancelar")
             }
         }
+    )
+}
+
+@Composable
+fun BackgroundImage() {
+    val isDarkTheme = isSystemInDarkTheme()
+    val backgroundImage = if (isDarkTheme) {
+        painterResource(R.drawable.fundo)
+    } else {
+        painterResource(R.drawable.fundo_claro_things)
+    }
+
+    Image(
+        painter = backgroundImage,
+        contentDescription = "Fundo do app",
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .fillMaxSize()
+            .alpha(0.2f)
     )
 }
