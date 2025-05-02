@@ -1,21 +1,21 @@
 
 package com.projetointegrador3.superid
 
-import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,20 +27,22 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -66,11 +68,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
 import com.projetointegrador3.superid.ui.theme.SuperIDTheme
 
 
@@ -80,18 +83,30 @@ class HomeActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SuperIDTheme {
-                HomeScreen()
+                MainNavigation()
             }
         }
     }
 }
 
+@Composable
+//@Preview
+fun MainNavigation() {
+    val navController = rememberNavController()
 
-
+    NavHost(navController = navController, startDestination = "home") {
+        composable("home") {
+            HomeScreen(navController)
+        }
+        composable("detail/{categoryName}") { backStackEntry ->
+            val categoryName = backStackEntry.arguments?.getString("categoryName") ?: ""
+            CategoryDetailScreen(navController, categoryName)
+        }
+    }
+}
 
 @Composable
-@Preview
-fun HomeScreen() {
+fun HomeScreen(navController: NavController) {
     var searchText by remember { mutableStateOf("") }
     val context = LocalContext.current
     val categoriasState = remember { mutableStateOf<List<String>>(emptyList()) }
@@ -139,7 +154,7 @@ fun HomeScreen() {
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = Color.Black
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Adicionar senha")
+                    Icon(Icons.Default.Add, contentDescription = "Entrar com o SuperID")
                 }
             },
             bottomBar = {
@@ -205,12 +220,12 @@ fun HomeScreen() {
                 // Lista dinâmica do Firestore
                 items(categoriasState.value) { nomeCategoria ->
                     val icon = getIconForCategory(nomeCategoria)
-                    Cards(nomeCategoria to icon, context)
+                    Cards(nomeCategoria to icon, context, navController)
                 }
 
                 // Card para adicionar nova categoria
                 item {
-                    Cards("Adicionar Categoria" to Icons.Default.Add, context)
+                    Cards("Adicionar Categoria" to Icons.Default.Add, context, navController)
                 }
             }
         }
@@ -232,14 +247,16 @@ fun getIconForCategory(nome: String): ImageVector {
 
 //Definição dos CARDS
 @Composable
-fun Cards(category: Pair<String, ImageVector>, context: android.content.Context) {
+fun Cards(category: Pair<String, ImageVector>, context: Context, navController: NavController) {
     Card(
-
-        modifier = Modifier.clickable { if (category.first == "Adicionar Categoria") {
-            context.startActivity(Intent(context, AddCategoryActivity::class.java))
-        } else {
-            // Aqui você pode colocar ações para as outras categorias depois, se quiser
-        } }
+        modifier = Modifier.clickable {
+            if (category.first == "Adicionar Categoria") {
+                context.startActivity(Intent(context, AddCategoryActivity::class.java))
+            } else {
+                // Navegação para a tela de detalhes da categoria
+                navController.navigate("detail/${category.first}")
+            }
+        }
             .size(160.dp) // Tamanho quadrado
             .padding(8.dp),
         colors = CardDefaults.cardColors(
@@ -250,9 +267,7 @@ fun Cards(category: Pair<String, ImageVector>, context: android.content.Context)
             defaultElevation = 8.dp,
             pressedElevation = 4.dp
         )
-    )
-    //Conteudo do CARD
-    {
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -337,5 +352,225 @@ fun SearchBar(
     )
 }
 
+fun loadSenhas(
+    context: Context,
+    categoryName: String,
+    onResult: (List<Triple<String?, String?, String?>>) -> Unit
+) {
+    val db = FirebaseFirestore.getInstance()
+    val user = FirebaseAuth.getInstance().currentUser ?: return
+
+    db.collection("usuarios")
+        .document(user.uid)
+        .collection("categorias")
+        .document(categoryName)
+        .collection(categoryName)
+        .get()
+        .addOnSuccessListener { result ->
+            val lista = result.documents.map { doc ->
+                val usuario = doc.getString("usuario")
+                val descricao = doc.getString("descricao")
+                val senha = doc.getString("senha")
+                Triple(usuario, descricao, senha)
+            }.filter { it.third != null }
+            onResult(lista)
+        }
+}
+
+fun saveSenha(
+    context: Context,
+    categoryName: String,
+    usuario: String?,
+    descricao: String?,
+    senha: String,
+    onComplete: () -> Unit
+) {
+    val db = FirebaseFirestore.getInstance()
+    val user = FirebaseAuth.getInstance().currentUser ?: return
+
+    val novaSenha = hashMapOf(
+        "usuario" to usuario,
+        "descricao" to descricao,
+        "senha" to senha
+    )
+
+    db.collection("usuarios")
+        .document(user.uid)
+        .collection("categorias")
+        .document(categoryName)
+        .collection(categoryName)
+        .add(novaSenha)
+        .addOnSuccessListener {
+            Toast.makeText(context, "Senha adicionada com sucesso!", Toast.LENGTH_SHORT).show()
+            onComplete()
+        }
+        .addOnFailureListener { e ->
+            Toast.makeText(context, "Erro ao salvar: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+}
+
+@Composable
+fun CategoryDetailScreen(navController: NavController, categoryName: String) {
+    val context = LocalContext.current
+    val senhasState = remember { mutableStateOf<List<Triple<String?, String?, String?>>>(emptyList()) }
+    val showAddSenhaDialog = remember { mutableStateOf(false) }
 
 
+    val customColors = darkColorScheme(
+        primary = Color(0xFFD4AF37),
+        surface = Color(0xFF121212),
+        onSurface = Color.White
+    )
+
+    // Aplicando o tema
+    MaterialTheme(colorScheme = customColors) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Image(
+                painter = painterResource(R.drawable.fundo),
+                contentDescription = "Fundo do app",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(1.0f)
+            )
+
+            // Carregar senhas
+            LaunchedEffect(categoryName) {
+                loadSenhas(context, categoryName) { senhas ->
+                    senhasState.value = senhas
+                }
+            }
+
+            // Exibir a tela com FAB para adicionar senha
+            Scaffold(
+                floatingActionButton = {
+                    FloatingActionButton(
+                        onClick = { showAddSenhaDialog.value = true },
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Adicionar senha")
+                    }
+                }
+            ) { paddingValues ->
+
+                Column(
+                    modifier = Modifier
+                        .padding(paddingValues)
+                        .padding(16.dp)
+                ) {
+
+                    // Ícone de voltar
+                    IconButton(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier
+                            .padding(16.dp)
+                    ) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Voltar",
+                            tint = Color(0xFFFFC107),
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+
+                    Text("Categoria: $categoryName", style = MaterialTheme.typography.titleLarge)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    if (senhasState.value.isEmpty()) {
+                        Text("Nenhuma senha cadastrada ainda.")
+                    } else {
+                        senhasState.value.forEach { (usuario, descricao, senha) ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp)
+                            ) {
+                                // Exibe cada elemento da senha em uma linha separada
+                                Text("Usuário: ${usuario ?: "-"}", style = MaterialTheme.typography.bodyMedium)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Descrição: ${descricao ?: "-"}", style = MaterialTheme.typography.bodyMedium)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Senha: ${senha ?: "-"}", style = MaterialTheme.typography.bodyMedium)
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Exibir o Dialog para adicionar senha
+            if (showAddSenhaDialog.value) {
+                AddSenhaDialog(
+                    categoryName = categoryName,
+                    onDismiss = { showAddSenhaDialog.value = false },
+                    onSave = { usuario, descricao, senha ->
+                        saveSenha(
+                            context = context,
+                            categoryName = categoryName,
+                            usuario = usuario,
+                            descricao = descricao,
+                            senha = senha
+                        ) {
+                            // Recarregar senhas após salvar
+                            showAddSenhaDialog.value = false
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AddSenhaDialog(
+    categoryName: String,
+    onDismiss: () -> Unit,
+    onSave: (String?, String?, String) -> Unit
+) {
+    var usuario by remember { mutableStateOf("") }
+    var descricao by remember { mutableStateOf("") }
+    var senha by remember { mutableStateOf("") }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Adicionar Senha") },
+        text = {
+            Column {
+                TextField(
+                    value = usuario,
+                    onValueChange = { usuario = it },
+                    label = { Text("Usuário (opcional)") }
+                )
+                TextField(
+                    value = descricao,
+                    onValueChange = { descricao = it },
+                    label = { Text("Descrição (opcional)") }
+                )
+                TextField(
+                    value = senha,
+                    onValueChange = { senha = it },
+                    label = { Text("Senha") }
+                )
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                onClick = {
+                    if (senha.isNotBlank()) {
+                        onSave(
+                            usuario.takeIf { it.isNotBlank() },
+                            descricao.takeIf { it.isNotBlank() },
+                            senha
+                        )
+                    }
+                }
+            ) {
+                Text("Salvar")
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
