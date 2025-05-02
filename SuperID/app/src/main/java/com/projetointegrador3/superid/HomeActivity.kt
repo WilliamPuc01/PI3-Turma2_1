@@ -76,6 +76,13 @@ import androidx.navigation.compose.rememberNavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.projetointegrador3.superid.ui.theme.SuperIDTheme
+import java.security.SecureRandom
+import java.util.Base64
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 
 class HomeActivity : ComponentActivity() {
@@ -458,10 +465,19 @@ fun CategoryDetailScreen(navController: NavController, categoryName: String) {
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
+
+                val secretKey = remember { EncryptionUtils.generateFixedKey() }
+
                 if (senhasState.value.isEmpty()) {
                     Text("Nenhuma senha cadastrada ainda.", color = colors.onSurface)
                 } else {
-                    senhasState.value.forEach { (usuario, descricao, senha) ->
+                    senhasState.value.forEach { (usuario, descricao,senhaCriptografada) ->
+                        val decryptedSenha = try {
+                            EncryptionUtils.decrypt(senhaCriptografada ?: "", secretKey)
+                        } catch (e: Exception) {
+                            "Erro ao descriptografar"
+                        }
+
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -484,7 +500,7 @@ fun CategoryDetailScreen(navController: NavController, categoryName: String) {
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    "Senha: ${senha ?: "-"}",
+                                    "Senha: $decryptedSenha",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = colors.onSurface
                                 )
@@ -520,6 +536,8 @@ fun CategoryDetailScreen(navController: NavController, categoryName: String) {
     }
 }
 
+
+
 @Composable
 fun AddSenhaDialog(
     categoryName: String,
@@ -529,6 +547,8 @@ fun AddSenhaDialog(
     var usuario by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
     var senha by remember { mutableStateOf("") }
+    var encryptedSenha by remember { mutableStateOf("") }
+    val secretKey = remember { EncryptionUtils.generateFixedKey() }
 
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
@@ -555,11 +575,12 @@ fun AddSenhaDialog(
         confirmButton = {
             androidx.compose.material3.TextButton(
                 onClick = {
-                    if (senha.isNotBlank()) {
+                    encryptedSenha = EncryptionUtils.encrypt(senha, secretKey)
+                    if (encryptedSenha.isNotBlank()) {
                         onSave(
                             usuario.takeIf { it.isNotBlank() },
                             descricao.takeIf { it.isNotBlank() },
-                            senha
+                            encryptedSenha
                         )
                     }
                 }
@@ -574,6 +595,9 @@ fun AddSenhaDialog(
         }
     )
 }
+
+
+
 
 @Composable
 fun BackgroundImage() {
@@ -592,4 +616,40 @@ fun BackgroundImage() {
             .fillMaxSize()
             .alpha(0.2f)
     )
+}
+
+
+
+
+private fun EncryptionUtils.generateFixedKey(): SecretKeySpec {
+    val keyBytes = ByteArray(32) { 0x01 } // 32 bytes = 256 bits de valor fixo
+    return SecretKeySpec(keyBytes, "AES")
+}
+
+object EncryptionUtils {
+
+    private const val TRANSFORMATION = "AES/CBC/PKCS5Padding"
+
+
+    fun encrypt(data: String, secretKey: SecretKey): String {
+        val cipher = Cipher.getInstance(TRANSFORMATION)
+        val iv = ByteArray(cipher.blockSize)
+        SecureRandom().nextBytes(iv)
+        val ivParameterSpec = IvParameterSpec(iv)
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParameterSpec)
+        val encryptedBytes = cipher.doFinal(data.toByteArray())
+        val ivAndEncryptedData = iv + encryptedBytes
+        return Base64.getEncoder().encodeToString(ivAndEncryptedData)
+    }
+
+    fun decrypt(encryptedData: String, secretKey: SecretKey): String {
+        val ivAndEncryptedData = Base64.getDecoder().decode(encryptedData)
+        val iv = ivAndEncryptedData.copyOfRange(0, 16)
+        val encryptedBytes = ivAndEncryptedData.copyOfRange(16, ivAndEncryptedData.size)
+        val cipher = Cipher.getInstance(TRANSFORMATION)
+        val ivParameterSpec = IvParameterSpec(iv)
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, ivParameterSpec)
+        val decryptedBytes = cipher.doFinal(encryptedBytes)
+        return String(decryptedBytes)
+    }
 }
