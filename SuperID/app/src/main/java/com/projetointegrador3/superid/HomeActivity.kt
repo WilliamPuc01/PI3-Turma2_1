@@ -91,30 +91,14 @@ class HomeActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SuperIDTheme {
-                MainNavigation()
+                HomeScreen()
             }
         }
     }
 }
 
 @Composable
-//@Preview
-fun MainNavigation() {
-    val navController = rememberNavController()
-
-    NavHost(navController = navController, startDestination = "home") {
-        composable("home") {
-            HomeScreen(navController)
-        }
-        composable("detail/{categoryName}") { backStackEntry ->
-            val categoryName = backStackEntry.arguments?.getString("categoryName") ?: ""
-            CategoryDetailScreen(navController, categoryName)
-        }
-    }
-}
-
-@Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen() {
     var searchText by remember { mutableStateOf("") }
     val context = LocalContext.current
     val categoriasState = remember { mutableStateOf<List<String>>(emptyList()) }
@@ -216,12 +200,12 @@ fun HomeScreen(navController: NavController) {
                 // Lista dinâmica do Firestore
                 items(categoriasState.value) { nomeCategoria ->
                     val icon = getIconForCategory(nomeCategoria)
-                    Cards(nomeCategoria to icon, context, navController)
+                    Cards(nomeCategoria to icon, context)
                 }
 
                 // Card para adicionar nova categoria
                 item {
-                    Cards("Adicionar Categoria" to Icons.Default.Add, context, navController)
+                    Cards("Adicionar Categoria" to Icons.Default.Add, context)
                 }
             }
         }
@@ -243,14 +227,16 @@ fun getIconForCategory(nome: String): ImageVector {
 
 //Definição dos CARDS
 @Composable
-fun Cards(category: Pair<String, ImageVector>, context: Context, navController: NavController) {
+fun Cards(category: Pair<String, ImageVector>, context: Context) {
     Card(
         modifier = Modifier.clickable {
             if (category.first == "Adicionar Categoria") {
                 context.startActivity(Intent(context, AddCategoryActivity::class.java))
             } else {
                 // Navegação para a tela de detalhes da categoria
-                navController.navigate("detail/${category.first}")
+                val intent = Intent(context, CategoryDetailActivity::class.java)
+                intent.putExtra("categoryName", category.first)
+                context.startActivity(intent)
             }
         }
             .size(160.dp) // Tamanho quadrado
@@ -348,256 +334,6 @@ fun SearchBar(
     )
 }
 
-fun loadSenhas(
-    context: Context,
-    categoryName: String,
-    onResult: (List<Triple<String?, String?, String?>>) -> Unit
-) {
-    val db = FirebaseFirestore.getInstance()
-    val user = FirebaseAuth.getInstance().currentUser ?: return
-
-    db.collection("usuarios")
-        .document(user.uid)
-        .collection("categorias")
-        .document(categoryName)
-        .collection(categoryName)
-        .get()
-        .addOnSuccessListener { result ->
-            val lista = result.documents.map { doc ->
-                val usuario = doc.getString("usuario")
-                val descricao = doc.getString("descricao")
-                val senha = doc.getString("senha")
-                Triple(usuario, descricao, senha)
-            }.filter { it.third != null }
-            onResult(lista)
-        }
-}
-
-fun saveSenha(
-    context: Context,
-    categoryName: String,
-    usuario: String?,
-    descricao: String?,
-    senha: String,
-    onComplete: () -> Unit
-) {
-    val db = FirebaseFirestore.getInstance()
-    val user = FirebaseAuth.getInstance().currentUser ?: return
-
-    val novaSenha = hashMapOf(
-        "usuario" to usuario,
-        "descricao" to descricao,
-        "senha" to senha
-    )
-
-    db.collection("usuarios")
-        .document(user.uid)
-        .collection("categorias")
-        .document(categoryName)
-        .collection(categoryName)
-        .add(novaSenha)
-        .addOnSuccessListener {
-            Toast.makeText(context, "Senha adicionada com sucesso!", Toast.LENGTH_SHORT).show()
-            onComplete()
-        }
-        .addOnFailureListener { e ->
-            Toast.makeText(context, "Erro ao salvar: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-}
-
-@Composable
-fun CategoryDetailScreen(navController: NavController, categoryName: String) {
-    val context = LocalContext.current
-    val senhasState = remember { mutableStateOf<List<Triple<String?, String?, String?>>>(emptyList()) }
-    val showAddSenhaDialog = remember { mutableStateOf(false) }
-
-    //variavel de padronização do tema
-    val colors = MaterialTheme.colorScheme
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.background)
-    ) {
-        BackgroundImage()
-
-        // Carregar senhas ao entrar
-        LaunchedEffect(categoryName) {
-            loadSenhas(context, categoryName) { senhas ->
-                senhasState.value = senhas
-            }
-        }
-
-        Scaffold(
-            containerColor = Color.Transparent,
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = { showAddSenhaDialog.value = true },
-                    containerColor = colors.primary,
-                    contentColor = colors.onPrimary
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Adicionar senha")
-                }
-            }
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .padding(paddingValues)
-                    .padding(16.dp)
-            ) {
-                // Botão de voltar
-                IconButton(
-                    onClick = { navController.popBackStack() },
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Voltar",
-                        tint = colors.primary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-
-                Text(
-                    "Categoria: $categoryName",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = colors.onSurface
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-
-                val secretKey = remember { EncryptionUtils.generateFixedKey() }
-
-                if (senhasState.value.isEmpty()) {
-                    Text("Nenhuma senha cadastrada ainda.", color = colors.onSurface)
-                } else {
-                    senhasState.value.forEach { (usuario, descricao,senhaCriptografada) ->
-                        val decryptedSenha = try {
-                            EncryptionUtils.decrypt(senhaCriptografada ?: "", secretKey)
-                        } catch (e: Exception) {
-                            "Erro ao descriptografar"
-                        }
-
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = colors.surface
-                            )
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    "Usuário: ${usuario ?: "-"}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = colors.onSurface
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    "Descrição: ${descricao ?: "-"}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = colors.onSurface
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    "Senha: $decryptedSenha",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = colors.onSurface
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Diálogo de adicionar senha
-        if (showAddSenhaDialog.value) {
-            AddSenhaDialog(
-                categoryName = categoryName,
-                onDismiss = { showAddSenhaDialog.value = false },
-                onSave = { usuario, descricao, senha ->
-                    saveSenha(
-                        context = context,
-                        categoryName = categoryName,
-                        usuario = usuario,
-                        descricao = descricao,
-                        senha = senha
-                    ) {
-                        showAddSenhaDialog.value = false
-                        // Recarrega as senhas
-                        loadSenhas(context, categoryName) { senhas ->
-                            senhasState.value = senhas
-                        }
-                    }
-                }
-            )
-        }
-    }
-}
-
-
-
-@Composable
-fun AddSenhaDialog(
-    categoryName: String,
-    onDismiss: () -> Unit,
-    onSave: (String?, String?, String) -> Unit
-) {
-    var usuario by remember { mutableStateOf("") }
-    var descricao by remember { mutableStateOf("") }
-    var senha by remember { mutableStateOf("") }
-    var encryptedSenha by remember { mutableStateOf("") }
-    val secretKey = remember { EncryptionUtils.generateFixedKey() }
-
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Adicionar Senha") },
-        text = {
-            Column {
-                TextField(
-                    value = usuario,
-                    onValueChange = { usuario = it },
-                    label = { Text("Usuário (opcional)") }
-                )
-                TextField(
-                    value = descricao,
-                    onValueChange = { descricao = it },
-                    label = { Text("Descrição (opcional)") }
-                )
-                TextField(
-                    value = senha,
-                    onValueChange = { senha = it },
-                    label = { Text("Senha") }
-                )
-            }
-        },
-        confirmButton = {
-            androidx.compose.material3.TextButton(
-                onClick = {
-                    encryptedSenha = EncryptionUtils.encrypt(senha, secretKey)
-                    if (encryptedSenha.isNotBlank()) {
-                        onSave(
-                            usuario.takeIf { it.isNotBlank() },
-                            descricao.takeIf { it.isNotBlank() },
-                            encryptedSenha
-                        )
-                    }
-                }
-            ) {
-                Text("Salvar")
-            }
-        },
-        dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
-        }
-    )
-}
-
-
-
 
 @Composable
 fun BackgroundImage() {
@@ -616,40 +352,4 @@ fun BackgroundImage() {
             .fillMaxSize()
             .alpha(0.2f)
     )
-}
-
-
-
-
-private fun EncryptionUtils.generateFixedKey(): SecretKeySpec {
-    val keyBytes = ByteArray(32) { 0x01 } // 32 bytes = 256 bits de valor fixo
-    return SecretKeySpec(keyBytes, "AES")
-}
-
-object EncryptionUtils {
-
-    private const val TRANSFORMATION = "AES/CBC/PKCS5Padding"
-
-
-    fun encrypt(data: String, secretKey: SecretKey): String {
-        val cipher = Cipher.getInstance(TRANSFORMATION)
-        val iv = ByteArray(cipher.blockSize)
-        SecureRandom().nextBytes(iv)
-        val ivParameterSpec = IvParameterSpec(iv)
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParameterSpec)
-        val encryptedBytes = cipher.doFinal(data.toByteArray())
-        val ivAndEncryptedData = iv + encryptedBytes
-        return Base64.getEncoder().encodeToString(ivAndEncryptedData)
-    }
-
-    fun decrypt(encryptedData: String, secretKey: SecretKey): String {
-        val ivAndEncryptedData = Base64.getDecoder().decode(encryptedData)
-        val iv = ivAndEncryptedData.copyOfRange(0, 16)
-        val encryptedBytes = ivAndEncryptedData.copyOfRange(16, ivAndEncryptedData.size)
-        val cipher = Cipher.getInstance(TRANSFORMATION)
-        val ivParameterSpec = IvParameterSpec(iv)
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, ivParameterSpec)
-        val decryptedBytes = cipher.doFinal(encryptedBytes)
-        return String(decryptedBytes)
-    }
 }
