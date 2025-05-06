@@ -329,11 +329,26 @@ fun CategoryDetailScreen(categoryName: String) {
                                     color = colors.onSurface
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    "Senha: $decryptedSenha",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = colors.onSurface
-                                )
+                                var senhaVisivel by remember { mutableStateOf(false) }
+
+                                if (senhaVisivel) {
+                                    Text(
+                                        "Senha: $decryptedSenha",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = colors.onSurface
+                                    )
+                                } else {
+                                    Text(
+                                        "Senha: •••••••••",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = colors.onSurface
+                                    )
+                                }
+
+                                TextButton(onClick = { senhaVisivel = !senhaVisivel }) {
+                                    Text(if (senhaVisivel) "Ocultar" else "Mostrar")
+                                }
+
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 // Botões de editar e excluir
@@ -522,15 +537,13 @@ fun EditSenhaDialog(
 ) {
     var usuario by remember { mutableStateOf(currentUsuario ?: "") }
     var descricao by remember { mutableStateOf(currentDescricao ?: "") }
-    var senha by remember {
-        mutableStateOf(
-            try {
-                EncryptionUtils.decrypt(currentSenhaCriptografada, EncryptionUtils.generateFixedKey())
-            } catch (e: Exception) {
-                ""
-            }
-        )
+    val decryptedSenha = try {
+        EncryptionUtils.decrypt(currentSenhaCriptografada, EncryptionUtils.generateFixedKey())
+    } catch (e: Exception) {
+        ""
     }
+    var senha by remember { mutableStateOf(decryptedSenha) }
+    var senhaVisivel by remember { mutableStateOf(false) }
 
     val secretKey = remember { EncryptionUtils.generateFixedKey() }
 
@@ -550,9 +563,15 @@ fun EditSenhaDialog(
                     label = { Text("Descrição (opcional)") }
                 )
                 TextField(
-                    value = senha,
+                    value = if (senhaVisivel) senha else "•".repeat(senha.length),
                     onValueChange = { senha = it },
-                    label = { Text("Senha") }
+                    label = { Text("Senha") },
+                    singleLine = true,
+                    trailingIcon = {
+                        TextButton(onClick = { senhaVisivel = !senhaVisivel }) {
+                            Text(if (senhaVisivel) "Ocultar" else "Mostrar")
+                        }
+                    }
                 )
             }
         },
