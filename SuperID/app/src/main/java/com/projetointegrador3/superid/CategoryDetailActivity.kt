@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +19,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -26,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,10 +65,17 @@ class CategoryDetailActivity : ComponentActivity() {
     }
 }
 
+data class Senha(
+    val id: String,
+    val usuario: String?,
+    val descricao: String?,
+    val senhaCriptografada: String?
+)
+
 fun loadSenhas(
     context: Context,
     categoryName: String,
-    onResult: (List<Triple<String?, String?, String?>>) -> Unit
+    onResult: (List<Senha>) -> Unit
 ) {
     val db = FirebaseFirestore.getInstance()
     val user = FirebaseAuth.getInstance().currentUser ?: return
@@ -76,11 +88,13 @@ fun loadSenhas(
         .get()
         .addOnSuccessListener { result ->
             val lista = result.documents.map { doc ->
-                val usuario = doc.getString("usuario")
-                val descricao = doc.getString("descricao")
-                val senha = doc.getString("senha")
-                Triple(usuario, descricao, senha)
-            }.filter { it.third != null }
+                Senha(
+                    id = doc.id,
+                    usuario = doc.getString("usuario"),
+                    descricao = doc.getString("descricao"),
+                    senhaCriptografada = doc.getString("senha")
+                )
+            }
             onResult(lista)
         }
 }
@@ -150,11 +164,82 @@ object EncryptionUtils {
     }
 }
 
+fun deleteSenha(
+    context: Context,
+    categoryName: String,
+    usuario: String?,
+    descricao: String?,
+    senhaCriptografada: String,
+    onComplete: () -> Unit
+) {
+    val db = FirebaseFirestore.getInstance()
+    val user = FirebaseAuth.getInstance().currentUser ?: return
+
+    val categoriaRef = db.collection("usuarios")
+        .document(user.uid)
+        .collection("categorias")
+        .document(categoryName)
+        .collection(categoryName)
+
+    categoriaRef
+        .whereEqualTo("usuario", usuario)
+        .whereEqualTo("descricao", descricao)
+        .whereEqualTo("senha", senhaCriptografada)
+        .get()
+        .addOnSuccessListener { result ->
+            for (document in result) {
+                categoriaRef.document(document.id).delete()
+            }
+            Toast.makeText(context, "Senha excluída com sucesso", Toast.LENGTH_SHORT).show()
+            onComplete()
+        }
+        .addOnFailureListener {
+            Toast.makeText(context, "Erro ao excluir senha", Toast.LENGTH_SHORT).show()
+        }
+}
+
+fun updateSenha(
+    context: Context,
+    categoryName: String,
+    senhaItem: Senha,
+    novaSenhaCriptografada: String,
+    novoUsuario: String?,
+    novaDescricao: String?,
+    onComplete: () -> Unit
+) {
+    val db = FirebaseFirestore.getInstance()
+    val user = FirebaseAuth.getInstance().currentUser ?: return
+
+    val senhaAtualizada = hashMapOf(
+        "usuario" to novoUsuario,
+        "descricao" to novaDescricao,
+        "senha" to novaSenhaCriptografada
+    )
+
+    db.collection("usuarios")
+        .document(user.uid)
+        .collection("categorias")
+        .document(categoryName)
+        .collection(categoryName)
+        .document(senhaItem.id)
+        .set(senhaAtualizada)
+        .addOnSuccessListener {
+            Toast.makeText(context, "Senha atualizada com sucesso", Toast.LENGTH_SHORT).show()
+            onComplete()
+        }
+        .addOnFailureListener { e ->
+            Toast.makeText(context, "Erro ao atualizar: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+}
+
 @Composable
 fun CategoryDetailScreen(categoryName: String) {
     val context = LocalContext.current
-    val senhasState = remember { mutableStateOf<List<Triple<String?, String?, String?>>>(emptyList()) }
+    val senhasState = remember { mutableStateOf<List<Senha>>(emptyList()) }
     val showAddSenhaDialog = remember { mutableStateOf(false) }
+    val senhaParaEditar = remember { mutableStateOf<Senha?>(null) }
+    val showDeleteConfirmationDialog = remember { mutableStateOf(false) }
+    val senhaParaExcluir = remember { mutableStateOf<Senha?>(null) }
 
     //variavel de padronização do tema
     val colors = MaterialTheme.colorScheme
@@ -216,9 +301,9 @@ fun CategoryDetailScreen(categoryName: String) {
                 if (senhasState.value.isEmpty()) {
                     Text("Nenhuma senha cadastrada ainda.", color = colors.onSurface)
                 } else {
-                    senhasState.value.forEach { (usuario, descricao,senhaCriptografada) ->
+                    senhasState.value.forEach { senhaItem ->
                         val decryptedSenha = try {
-                            EncryptionUtils.decrypt(senhaCriptografada ?: "", secretKey)
+                            EncryptionUtils.decrypt(senhaItem.senhaCriptografada ?: "", secretKey)
                         } catch (e: Exception) {
                             "Erro ao descriptografar"
                         }
@@ -233,13 +318,13 @@ fun CategoryDetailScreen(categoryName: String) {
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
-                                    "Usuário: ${usuario ?: "-"}",
+                                    "Usuário: ${senhaItem.usuario ?: "-"}",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = colors.onSurface
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    "Descrição: ${descricao ?: "-"}",
+                                    "Descrição: ${senhaItem.descricao ?: "-"}",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = colors.onSurface
                                 )
@@ -249,6 +334,30 @@ fun CategoryDetailScreen(categoryName: String) {
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = colors.onSurface
                                 )
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // Botões de editar e excluir
+                                Row {
+                                    IconButton(onClick = {
+                                        senhaParaEditar.value = senhaItem
+                                    }) {
+                                        Icon(
+                                            Icons.Default.Edit,
+                                            contentDescription = "Editar",
+                                            tint = colors.primary
+                                        )
+                                    }
+                                    IconButton(onClick = {
+                                        senhaParaExcluir.value = senhaItem
+                                        showDeleteConfirmationDialog.value = true  // Exibe o AlertDialog de confirmação
+                                    }) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Excluir",
+                                            tint = Color.Red
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -274,6 +383,67 @@ fun CategoryDetailScreen(categoryName: String) {
                         loadSenhas(context, categoryName) { senhas ->
                             senhasState.value = senhas
                         }
+                    }
+                }
+            )
+        }
+        senhaParaEditar.value?.let { senhaItem ->
+            EditSenhaDialog(
+                categoryName = categoryName,
+                currentUsuario = senhaItem.usuario ?: "",
+                currentDescricao = senhaItem.descricao ?: "",
+                currentSenhaCriptografada = senhaItem.senhaCriptografada ?: "",
+                onDismiss = { senhaParaEditar.value = null },
+                onSave = { novoUsuario, novaDescricao, novaSenhaCriptografada ->
+                    updateSenha(
+                        context = context,
+                        categoryName = categoryName,
+                        senhaItem = senhaItem,
+                        novaSenhaCriptografada = novaSenhaCriptografada,
+                        novoUsuario = novoUsuario,
+                        novaDescricao = novaDescricao
+                    ) {
+                        senhaParaEditar.value = null
+                        loadSenhas(context, categoryName) { senhas ->
+                            senhasState.value = senhas
+                        }
+                    }
+                }
+            )
+        }
+
+        if (showDeleteConfirmationDialog.value) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirmationDialog.value = false },
+                title = { Text("Excluir Senha") },
+                text = { Text("Tem certeza de que deseja excluir esta senha?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            senhaParaExcluir.value?.let { senhaItem ->
+                                // Chama a função de exclusão
+                                deleteSenha(
+                                    context,
+                                    categoryName,
+                                    senhaItem.usuario,
+                                    senhaItem.descricao,
+                                    senhaItem.senhaCriptografada ?: ""
+                                ) {
+                                    // Atualiza a lista de senhas
+                                    loadSenhas(context, categoryName) { senhas ->
+                                        senhasState.value = senhas
+                                    }
+                                }
+                            }
+                            showDeleteConfirmationDialog.value = false // Fecha o diálogo
+                        }
+                    ) {
+                        Text("Confirmar", color = Color.Red)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteConfirmationDialog.value = false }) {
+                        Text("Cancelar")
                     }
                 }
             )
@@ -328,6 +498,72 @@ fun AddSenhaDialog(
                             encryptedSenha
                         )
                     }
+                }
+            ) {
+                Text("Salvar")
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
+
+@Composable
+fun EditSenhaDialog(
+    categoryName: String,
+    currentUsuario: String?,
+    currentDescricao: String?,
+    currentSenhaCriptografada: String,
+    onDismiss: () -> Unit,
+    onSave: (String?, String?, String) -> Unit
+) {
+    var usuario by remember { mutableStateOf(currentUsuario ?: "") }
+    var descricao by remember { mutableStateOf(currentDescricao ?: "") }
+    val secretKey = remember { EncryptionUtils.generateFixedKey() }
+    var senha by remember {
+        mutableStateOf(
+            try {
+                EncryptionUtils.decrypt(currentSenhaCriptografada, secretKey)
+            } catch (e: Exception) {
+                ""
+            }
+        )
+    }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Editar Senha") },
+        text = {
+            Column {
+                TextField(
+                    value = usuario,
+                    onValueChange = { usuario = it },
+                    label = { Text("Usuário (opcional)") }
+                )
+                TextField(
+                    value = descricao,
+                    onValueChange = { descricao = it },
+                    label = { Text("Descrição (opcional)") }
+                )
+                TextField(
+                    value = senha,
+                    onValueChange = { senha = it },
+                    label = { Text("Senha") }
+                )
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                onClick = {
+                    val novaSenhaCriptografada = EncryptionUtils.encrypt(senha, secretKey)
+                    onSave(
+                        usuario.takeIf { it.isNotBlank() },
+                        descricao.takeIf { it.isNotBlank() },
+                        novaSenhaCriptografada
+                    )
                 }
             ) {
                 Text("Salvar")
