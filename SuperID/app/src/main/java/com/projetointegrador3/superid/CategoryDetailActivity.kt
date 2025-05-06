@@ -522,18 +522,19 @@ fun EditSenhaDialog(
 ) {
     var usuario by remember { mutableStateOf(currentUsuario ?: "") }
     var descricao by remember { mutableStateOf(currentDescricao ?: "") }
-    val secretKey = remember { EncryptionUtils.generateFixedKey() }
     var senha by remember {
         mutableStateOf(
             try {
-                EncryptionUtils.decrypt(currentSenhaCriptografada, secretKey)
+                EncryptionUtils.decrypt(currentSenhaCriptografada, EncryptionUtils.generateFixedKey())
             } catch (e: Exception) {
                 ""
             }
         )
     }
 
-    androidx.compose.material3.AlertDialog(
+    val secretKey = remember { EncryptionUtils.generateFixedKey() }
+
+    AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Editar Senha") },
         text = {
@@ -556,23 +557,27 @@ fun EditSenhaDialog(
             }
         },
         confirmButton = {
-            androidx.compose.material3.TextButton(
-                onClick = {
-                    val novaSenhaCriptografada = EncryptionUtils.encrypt(senha, secretKey)
-                    onSave(
-                        usuario.takeIf { it.isNotBlank() },
-                        descricao.takeIf { it.isNotBlank() },
-                        novaSenhaCriptografada
-                    )
-                }
-            ) {
+            TextButton(onClick = {
+                val senhaCriptografada = EncryptionUtils.encrypt(senha, secretKey)
+                onSave(
+                    usuario.takeIf { it.isNotBlank() },
+                    descricao.takeIf { it.isNotBlank() },
+                    senhaCriptografada
+                )
+            }) {
                 Text("Salvar")
             }
         },
         dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss) {
                 Text("Cancelar")
             }
         }
     )
+}
+
+@Composable
+@Preview
+fun CategoryDetailScreenPreview(){
+    CategoryDetailScreen("Categoria")
 }
