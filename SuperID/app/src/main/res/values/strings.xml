@@ -5,4 +5,5 @@
     <string name="title_activity_register">RegisterActivity</string>
     <string name="title_activity_add_category">AddCategoryActivity</string>
     <string name="title_activity_category_detail">CategoryDetailActivity</string>
+    <string name="title_activity_background_image">BackgroundImageActivity</string>
 </resources>

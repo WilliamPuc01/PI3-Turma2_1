@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,16 +42,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.projetointegrador3.superid.ui.theme.SuperIDTheme
 import java.security.SecureRandom
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import com.projetointegrador3.superid.BackgroundImage
 
 class CategoryDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
