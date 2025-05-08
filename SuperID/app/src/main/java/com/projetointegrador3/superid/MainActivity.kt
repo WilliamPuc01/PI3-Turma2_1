@@ -146,8 +146,8 @@ fun WelcomeScreen(modifier: Modifier = Modifier
                     },
                     text = {
                         Column(
-                            modifier = Modifier.fillMaxWidth(), // Ocupar toda largura
-                            horizontalAlignment = Alignment.CenterHorizontally // Centralizar tudo
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
                                 text = "Aqui você tem o armazenamento seguro de senhas para logar nos nossos sites parceiros",
@@ -157,18 +157,37 @@ fun WelcomeScreen(modifier: Modifier = Modifier
                             )
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Linha adicional de texto
+                            Image(
+                                painter = painterResource(R.drawable.superid_exemplo),
+                                contentDescription = "salve e categorize suas senhas",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(400.dp),
+                                contentScale = ContentScale.Fit
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Text(
+                                text = "salve e categorize suas senhas",
+                                fontSize = 14.sp,
+                                color = Color.White,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(20.dp))
+
+
                             Text(
                                 text = "TERMOS DE USO",
                                 fontSize = 14.sp,
                                 color = Color.White,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center // Texto centralizado
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                             Spacer(modifier = Modifier.height(16.dp))
 
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center // Centralizar o Row também
+                                horizontalArrangement = Arrangement.Center
                             ) {
                                 Checkbox(
                                     checked = isChecked,
@@ -195,7 +214,7 @@ fun WelcomeScreen(modifier: Modifier = Modifier
                                     text = "Aceite os termos de uso antes de prosseguir",
                                     color = Color.Red,
                                     fontSize = 14.sp,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center // Texto de erro centralizado
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
                             }
                         }
@@ -206,6 +225,8 @@ fun WelcomeScreen(modifier: Modifier = Modifier
                                 if (isChecked) {
                                     introTermos = false
                                     setPrimeiraVez(context, false)
+                                    val intent = Intent(context, RegisterActivity::class.java)
+                                    context.startActivity(intent)
                                 } else {
                                     showError = true
                                 }
