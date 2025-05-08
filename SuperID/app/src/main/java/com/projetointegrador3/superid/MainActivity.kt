@@ -31,16 +31,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.compose.ui.window.DialogProperties
 
 class MainActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
+
     override fun onCreate(savedInstanceState: Bundle?) {
         auth = Firebase.auth
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            SuperIDTheme {
-                WelcomeScreenPreview()
+
+        // Verifica se o usuário já aceitou os termos
+        if (!primeiraVez(this)) {
+            // Vai direto para a tela de login
+            val intent = Intent(this, SignInActivity::class.java)
+            startActivity(intent)
+            finish() // Fecha a MainActivity para não voltar
+        } else {
+            // Exibe a tela de boas-vindas com termos
+            enableEdgeToEdge()
+            setContent {
+                SuperIDTheme {
+                    WelcomeScreenPreview()
+                }
             }
         }
     }
@@ -61,9 +73,7 @@ fun setPrimeiraVez(context: Context, primeiraVez: Boolean) {
 
 
 @Composable
-fun WelcomeScreen(modifier: Modifier = Modifier
-    .fillMaxSize()
-    .wrapContentSize(Alignment.Center)
+fun WelcomeScreen(
 ) {
     val context = LocalContext.current
 
@@ -90,38 +100,6 @@ fun WelcomeScreen(modifier: Modifier = Modifier
                     .alpha(1.0f)
             )
 
-            Column(
-                modifier = modifier
-                    .padding(16.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text("Bem-Vindo ao SuperID", fontSize = 30.sp, color = Color.White)
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Button(
-                    onClick = {
-                        val intent = Intent(context, RegisterActivity::class.java)
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "Cadastrar")
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = {
-                        val intent = Intent(context, SignInActivity::class.java)
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "Fazer Login")
-                }
-            }
-
             // pop up de introdução
             var isChecked by remember { mutableStateOf(false) }
             var showError by remember { mutableStateOf(false) }
@@ -129,9 +107,11 @@ fun WelcomeScreen(modifier: Modifier = Modifier
             if (introTermos) {
                 AlertDialog(
                     onDismissRequest = {
-                        introTermos = false
-                        setPrimeiraVez(context, false)
                     },
+                    properties = DialogProperties(
+                        dismissOnClickOutside = false,
+                        dismissOnBackPress = false
+                    ),
                     title = {
                         Box(
                             modifier = Modifier.fillMaxWidth(),
@@ -227,6 +207,9 @@ fun WelcomeScreen(modifier: Modifier = Modifier
                                     setPrimeiraVez(context, false)
                                     val intent = Intent(context, RegisterActivity::class.java)
                                     context.startActivity(intent)
+                                    if (context is ComponentActivity) {
+                                        context.finish()
+                                    }
                                 } else {
                                     showError = true
                                 }
