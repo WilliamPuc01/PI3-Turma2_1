@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -162,9 +164,7 @@ fun ForgotPasswordDialog(
 
 
 @Composable
-fun LoginScreen(modifier: Modifier = Modifier
-    .fillMaxSize()
-    ) {
+fun LoginScreen(modifier: Modifier = Modifier.fillMaxSize()) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
@@ -179,77 +179,132 @@ fun LoginScreen(modifier: Modifier = Modifier
 
     MaterialTheme(colorScheme = customColors) {
         Box(modifier = modifier) {
-            // Imagem de fundo
-            Image(
-                painter = painterResource(R.drawable.fundo),
-                contentDescription = "Fundo do app",
-                contentScale = ContentScale.Crop,
+            BackgroundImage()
+
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .alpha(1.0f)
-            )
-                Column(
-                    modifier = modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .imePadding() // Move os elementos pra cima quando o teclado abre
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
+                    .padding(horizontal = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Spacer(modifier = Modifier.height(40.dp))
+
+                // LOGO
+                Image(
+                    painter = painterResource(id = R.drawable.superid_removebg), // use o seu logo aqui
+                    contentDescription = "Logo SuperID",
+                    modifier = Modifier
+                        .height(180.dp)
+                        .padding(bottom = 16.dp),
+                    contentScale = ContentScale.Fit
+                )
+
+                // Título
+                Text("Login", fontSize = 30.sp, color = Color.White)
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Campo Email
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Campo Senha
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Senha") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Esqueci minha senha
+                TextButton(onClick = { showForgotPasswordDialog = true }) {
+                    if (isSystemInDarkTheme()) {
+                        Text(
+                            "Esqueci minha senha",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                textDecoration = TextDecoration.Underline
+                            )
+                        )
+                    } else {
+                        Text(
+                            "Esqueci minha senha",
+                            color = Color.Black,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                textDecoration = TextDecoration.Underline
+                            )
+                        )
+                    }
+                }
+                // Criar conta
+                TextButton(
+                    onClick = {
+                        val intent = Intent(context, RegisterActivity::class.java)
+                        context.startActivity(intent)
+                    }
                 ) {
-                    Spacer(modifier = Modifier.height(100.dp))
-                    Text("Login", fontSize = 30.sp, color = Color.White)
-                    Spacer(modifier = Modifier.height(20.dp))
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = { Text("Email", color = Color.White) }
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = { Text("Senha", color = Color.White) }
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-
-
-                    TextButton(onClick = { showForgotPasswordDialog = true }) {
-                        Text("Esqueci minha senha", color = Color.White, style = MaterialTheme.typography.bodyMedium.copy(textDecoration = TextDecoration.Underline))
-                    }
-
-                    Spacer(modifier = Modifier.height(1.dp))
-
-                    TextButton(
-                        onClick = {
-                            val intent = Intent(context, RegisterActivity::class.java)
-                            context.startActivity(intent)
-                        }
-                    ) {
+                    if (isSystemInDarkTheme()) {
                         Text("Não tem conta? ", color = Color.White)
-                        Text("Criar conta", color = Color.White, style = MaterialTheme.typography.bodyMedium.copy(textDecoration = TextDecoration.Underline))
-                    }
-
-                    Button(
-                        onClick = {
-                            login(email, password, context) { error -> message = error }
-                        }, modifier = Modifier
-                            .fillMaxWidth(0.6f)
-                            .height(48.dp)
-                    ) {
-                        Text(text = "Entrar")
-                    }
-
-                    // Mostra mensagens ao usuário
-                    if (message.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(text = message, color = Color.Red)
+                    Text(
+                        "Criar conta",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            textDecoration = TextDecoration.Underline
+                        )
+                    )
+                }else{
+                        Text("Não tem conta? ", color = Color.Black)
+                        Text(
+                            "Criar conta",
+                            color = Color.Black,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                textDecoration = TextDecoration.Underline
+                            )
+                        )
                     }
                 }
 
-            // Abre o Dialog para digitar o email
+                // Botão Entrar
+                Button(
+                    onClick = {
+                        login(email, password, context) { error -> message = error }
+                    },
+                    modifier = Modifier
+                        .height(50.dp),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Text(text = "Entrar", color = Color.Black)
+                }
+
+                // Mensagem de erro ou sucesso
+                if (message.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(text = message, color = Color.Red)
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+
+            // Diálogo de redefinição de senha
             if (showForgotPasswordDialog) {
                 ForgotPasswordDialog(
                     onDismiss = { showForgotPasswordDialog = false },

@@ -14,9 +14,9 @@ import com.projetointegrador3.superid.R
 fun BackgroundImage() {
     val isDarkTheme = isSystemInDarkTheme()
     val backgroundImage = if (isDarkTheme) {
-        painterResource(R.drawable.fundo)
+        painterResource(R.drawable.fundoescurocerto)
     } else {
-        painterResource(R.drawable.fundo_claro_things)
+        painterResource(R.drawable.fundoclarocerto)
     }
 
     Image(
@@ -25,6 +25,5 @@ fun BackgroundImage() {
         contentScale = ContentScale.Crop,
         modifier = Modifier
             .fillMaxSize()
-            .alpha(0.2f)
     )
 }
