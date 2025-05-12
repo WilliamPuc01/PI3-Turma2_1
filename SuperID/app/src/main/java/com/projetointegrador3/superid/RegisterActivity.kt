@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,12 +18,14 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
@@ -37,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,7 +58,7 @@ class RegisterActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SuperIDTheme {
-                SuperIDApp()
+                RegisterScreen()
             }
         }
     }
@@ -124,96 +128,134 @@ fun createDefaultCategories(userId: String) {
 }
 
 @Composable
-fun SignUpScreen(modifier: Modifier = Modifier
-    .fillMaxSize()
-    .wrapContentSize(Alignment.Center)) {
+fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
 
     val context = LocalContext.current
-    val customColors = darkColorScheme(
-        primary = Color(0xFFD4AF37), // Dourado
-        surface = Color(0xFF121212), // Preto
-        onSurface = Color.White
-    )
 
-    MaterialTheme(colorScheme = customColors) {
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // Imagem de fundo
-        Image(
-            painter = painterResource(R.drawable.fundo),
-            contentDescription = "Fundo do app",
-            contentScale = ContentScale.Crop,
+    Box(modifier = modifier) {
+        BackgroundImage()
+
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .alpha(1.0f)
-        )
-        }
-        Column(
-            modifier = modifier
-                .padding(16.dp)
                 .verticalScroll(rememberScrollState())
-                .imePadding(),
+                .imePadding()
+                .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Spacer(modifier = Modifier.height(100.dp))
-            Text("Cadastro de Usuário", fontSize = 30.sp, color = Color.White)
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // LOGO
+            Image(
+                painter = painterResource(id = R.drawable.superid_removebg),
+                contentDescription = "Logo SuperID",
+                modifier = Modifier
+                    .height(180.dp)
+                    .padding(bottom = 16.dp),
+                contentScale = ContentScale.Fit
+            )
+
+            // Título
+            Text("Criar Conta", fontSize = 30.sp, color = MaterialTheme.colorScheme.onSurface)
+
             Spacer(modifier = Modifier.height(20.dp))
 
+            // Campo Nome
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Digite o nome") },
-                modifier = Modifier.fillMaxWidth()
+                label = { Text("Nome completo") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
+            // Campo Email
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Digite o email") },
-                modifier = Modifier.fillMaxWidth()
+                label = { Text("Email") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
+            // Campo Senha
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Digite a senha") },
-                modifier = Modifier.fillMaxWidth()
+                label = { Text("Senha") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
+            // Botão Criar Conta
             Button(
-                onClick = { createAccount(name, email, password, context) { error -> message = error }
+                onClick = {
+                    createAccount(name, email, password, context) { result -> message = result }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(24.dp)
             ) {
-                Text(text = "Criar")
+                Text(text = "Criar Conta", color = Color.Black)
             }
 
-            // Mostra mensagens para o usuário
+            // Mensagem de feedback
             if (message.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(text = message, color = Color.Red)
+                Text(text = message, color = MaterialTheme.colorScheme.onPrimary)
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Voltar para Login
+            TextButton(
+                onClick = {
+                    val intent = Intent(context, SignInActivity::class.java)
+                    context.startActivity(intent)
+                }
+            ) {
+                if (isSystemInDarkTheme()) {
+                    Text("Já tem uma conta? ", color = Color.White)
+                    Text(
+                        "Entrar",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            textDecoration = TextDecoration.Underline
+                        )
+                    )
+                } else {
+                    Text("Já tem uma conta? ", color = Color.Black)
+                    Text(
+                        "Entrar",
+                        color = Color.Black,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            textDecoration = TextDecoration.Underline
+                        )
+                    )
+                }
             }
         }
     }
 }
 
-
-@Preview
-@Composable
-fun SuperIDApp() {
-    SuperIDTheme {
-        SignUpScreen()
-    }
-}

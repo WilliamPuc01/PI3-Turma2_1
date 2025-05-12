@@ -9,7 +9,9 @@
         import androidx.activity.compose.setContent
         import androidx.activity.enableEdgeToEdge
         import androidx.compose.foundation.Image
+        import androidx.compose.foundation.background
         import androidx.compose.foundation.clickable
+        import androidx.compose.foundation.isSystemInDarkTheme
         import androidx.compose.foundation.layout.Arrangement
         import androidx.compose.foundation.layout.Box
         import androidx.compose.foundation.layout.Column
@@ -63,6 +65,11 @@
         import com.google.firebase.firestore.FirebaseFirestore
         import com.projetointegrador3.superid.ui.theme.SuperIDTheme
         import com.projetointegrador3.superid.BackgroundImage
+        import com.projetointegrador3.superid.ui.theme.BotaoDourado
+        import com.projetointegrador3.superid.ui.theme.CardDarkBackground
+        import com.projetointegrador3.superid.ui.theme.CardLightBackground
+        import com.projetointegrador3.superid.ui.theme.DarkPrimary
+        import com.projetointegrador3.superid.ui.theme.LightPrimary
 
 
         class HomeActivity : ComponentActivity() {
@@ -105,7 +112,7 @@
                                     .padding(2.dp)
                             )
                             Text(
-                                "Senhas",
+                                "Categorias",
                                 style = MaterialTheme.typography.titleLarge,
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
@@ -124,51 +131,15 @@
                             Icon(Icons.Default.Add, contentDescription = "Entrar com o SuperID")
                         }
                     },
-                    bottomBar = {
-                        NavigationBar(
-                            modifier = Modifier
-                        ) {
-                            NavigationBarItem(
-                                icon = {
-                                    Icon(
 
-                                        imageVector = Icons.Default.Home,
-                                        contentDescription = null
-                                    )
-                                },
-                                label = {
-                                    Text(
-                                        "Categoria"
-                                    )
-                                },
-                                selected = true,
-                                /* Fazer com que retorne para pagina de categoria */
-                                onClick = {}
-                            )
-                            NavigationBarItem(
-                                icon = {
-                                    Icon(
-                                        imageVector = Icons.Default.AccountCircle,
-                                        contentDescription = null
-                                    )
-                                },
-                                label = {
-                                    Text(
-                                        "Senhas"
-                                    )
-                                },
-                                selected = false,
-                                /*Criar uma outra activity, uma ideia parecida do Authenticator da
-                                  Microsoft */
-                                onClick = {}
-                            )
-                        }
-                    }
                 ) { padding ->
 
-                    Box(modifier = Modifier.fillMaxSize()) {
-                    BackgroundImage()
-                    }
+                    // Box com fundo preto ou branco conforme o tema
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background)
+                    )
 
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
@@ -208,6 +179,11 @@
         //Definição dos CARDS
         @Composable
         fun Cards(category: Pair<String, ImageVector>, context: Context) {
+            val isDarkTheme = isSystemInDarkTheme()
+            val cardColor = if (isDarkTheme) DarkPrimary else LightPrimary
+
+
+
             Card(
                 modifier = Modifier.clickable {
                     if (category.first == "Adicionar Categoria") {
@@ -222,8 +198,8 @@
                     .size(160.dp) // Tamanho quadrado
                     .padding(8.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.onSurface
+                    containerColor = cardColor,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 elevation = CardDefaults.cardElevation(
                     defaultElevation = 8.dp,
@@ -240,7 +216,7 @@
                     Icon(
                         imageVector = category.second,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(if (category.first == "Adicionar Categoria") 50.dp else 40.dp)
                     )
                     Spacer(modifier = Modifier.height(16.dp))

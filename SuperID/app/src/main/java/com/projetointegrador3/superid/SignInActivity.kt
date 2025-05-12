@@ -171,13 +171,8 @@ fun LoginScreen(modifier: Modifier = Modifier.fillMaxSize()) {
     var showForgotPasswordDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    val customColors = darkColorScheme(
-        primary = Color(0xFFD4AF37), // Dourado
-        surface = Color(0xFF121212), // Preto
-        onSurface = Color.White
-    )
 
-    MaterialTheme(colorScheme = customColors) {
+
         Box(modifier = modifier) {
             BackgroundImage()
 
@@ -203,7 +198,7 @@ fun LoginScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                 )
 
                 // Título
-                Text("Login", fontSize = 30.sp, color = Color.White)
+                Text("Login", fontSize = 30.sp, color = MaterialTheme.colorScheme.onSurface)
 
                 Spacer(modifier = Modifier.height(20.dp))
 
@@ -298,7 +293,7 @@ fun LoginScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                 // Mensagem de erro ou sucesso
                 if (message.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = message, color = Color.Red)
+                    Text(text = message, color = MaterialTheme.colorScheme.onPrimary)
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -317,4 +312,4 @@ fun LoginScreen(modifier: Modifier = Modifier.fillMaxSize()) {
             }
         }
     }
-}
+
