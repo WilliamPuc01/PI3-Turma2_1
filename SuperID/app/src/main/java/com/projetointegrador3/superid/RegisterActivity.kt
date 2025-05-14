@@ -104,9 +104,6 @@ fun createAccount(name:String, email: String, password:String, context: android.
                         }
                 }
 
-                // Redireciona para tela de login
-                val intent = Intent(context, SignInActivity::class.java)
-                context.startActivity(intent)
 
             } else {
                 val exception = task.exception
@@ -140,7 +137,8 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false)}
+    var passwordVisible by remember { mutableStateOf(false) }
+    var showVerificationDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
@@ -158,7 +156,6 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
         ) {
             Spacer(modifier = Modifier.height(40.dp))
 
-            // LOGO
             Image(
                 painter = painterResource(id = R.drawable.superid_removebg),
                 contentDescription = "Logo SuperID",
@@ -168,12 +165,9 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                 contentScale = ContentScale.Fit
             )
 
-            // Título
             Text("Criar Conta", fontSize = 30.sp, color = MaterialTheme.colorScheme.onSurface)
-
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Campo Nome
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -187,7 +181,6 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Campo Email
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -201,7 +194,6 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Campo Senha
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -222,13 +214,16 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                 }
             )
 
-
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Botão Criar Conta
             Button(
                 onClick = {
-                    createAccount(name, email, password, context) { result -> message = result }
+                    createAccount(name, email, password, context) { result ->
+                        message = result
+                        if (result.contains("Verifique seu e-mail")) {
+                            showVerificationDialog = true
+                        }
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -238,7 +233,6 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                 Text(text = "Criar Conta", color = Color.Black)
             }
 
-            // Mensagem de feedback
             if (message.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(text = message, color = MaterialTheme.colorScheme.onPrimary)
@@ -246,34 +240,47 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Voltar para Login
             TextButton(
                 onClick = {
                     val intent = Intent(context, SignInActivity::class.java)
                     context.startActivity(intent)
                 }
             ) {
-                if (isSystemInDarkTheme()) {
-                    Text("Já tem uma conta? ", color = Color.White)
-                    Text(
-                        "Entrar",
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            textDecoration = TextDecoration.Underline
-                        )
+                val textColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+                Text("Já tem uma conta? ", color = textColor)
+                Text(
+                    "Entrar",
+                    color = textColor,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        textDecoration = TextDecoration.Underline
                     )
-                } else {
-                    Text("Já tem uma conta? ", color = Color.Black)
-                    Text(
-                        "Entrar",
-                        color = Color.Black,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            textDecoration = TextDecoration.Underline
-                        )
-                    )
-                }
+                )
             }
+        }
+
+        // Diálogo de verificação de e-mail
+        if (showVerificationDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showVerificationDialog = false },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showVerificationDialog = false
+                            val intent = Intent(context, SignInActivity::class.java)
+                            context.startActivity(intent)
+                        }
+                    ) {
+                        Text("Verificado")
+                    }
+                },
+                title = { Text("Verificação de email") },
+                text = {
+                    Text("Verifique seu email antes de fazer login para ter acesso a todas as funcionalidades do SuperID")
+                },
+                containerColor = Color(0xFF4B3D1F), // Marrom do seu Figma
+                titleContentColor = Color.White,
+                textContentColor = Color.White
+            )
         }
     }
 }
-
