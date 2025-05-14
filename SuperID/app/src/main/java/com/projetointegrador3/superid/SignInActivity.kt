@@ -2,6 +2,7 @@
 
 package com.projetointegrador3.superid
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -18,6 +19,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -163,6 +171,7 @@ fun ForgotPasswordDialog(
 
 
 
+
 @Composable
 fun LoginScreen(modifier: Modifier = Modifier.fillMaxSize()) {
     var email by remember { mutableStateOf("") }
@@ -170,10 +179,10 @@ fun LoginScreen(modifier: Modifier = Modifier.fillMaxSize()) {
     var message by remember { mutableStateOf("") }
     var showForgotPasswordDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    var passwordVisible by remember { mutableStateOf(false) }
 
 
-
-        Box(modifier = modifier) {
+    Box(modifier = modifier) {
             BackgroundImage()
 
             Column(
@@ -225,7 +234,16 @@ fun LoginScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                         .fillMaxWidth()
                         .height(60.dp),
                     shape = RoundedCornerShape(12.dp),
-                    singleLine = true
+                    singleLine = true,
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        val icon = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                        val description = if (passwordVisible) "Ocultar senha" else "Mostrar senha"
+
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(imageVector = icon, contentDescription = description)
+                        }
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))

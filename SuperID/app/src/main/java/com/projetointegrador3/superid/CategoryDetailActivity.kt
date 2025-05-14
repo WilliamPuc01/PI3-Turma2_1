@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,8 +19,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -256,229 +259,166 @@ fun CategoryDetailScreen(categoryName: String) {
     val senhaParaEditar = remember { mutableStateOf<Senha?>(null) }
     val showDeleteConfirmationDialog = remember { mutableStateOf(false) }
     val senhaParaExcluir = remember { mutableStateOf<Senha?>(null) }
+    val secretKey = remember { EncryptionUtils.generateFixedKey() }
 
-    //variavel de padronização do tema
     val colors = MaterialTheme.colorScheme
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.background)
-    ) {
-        BackgroundImage()
+    LaunchedEffect(categoryName) {
+        loadSenhas(context, categoryName) { senhas ->
+            senhasState.value = senhas
+        }
+    }
 
-        // Carregar senhas ao entrar
-        LaunchedEffect(categoryName) {
-            loadSenhas(context, categoryName) { senhas ->
-                senhasState.value = senhas
+    Scaffold(
+        containerColor = Color.Transparent,
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAddSenhaDialog.value = true },
+                containerColor = colors.primary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Adicionar senha")
             }
         }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
 
-        Scaffold(
-            containerColor = Color.Transparent,
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = { showAddSenhaDialog.value = true },
-                    containerColor = colors.primary,
-                    contentColor = colors.onPrimary
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Adicionar senha")
-                }
-            }
-        ) { paddingValues ->
+
             Column(
                 modifier = Modifier
-                    .padding(paddingValues)
-                    .padding(16.dp)
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
             ) {
-                // Botão de voltar
-                IconButton(
-                    onClick = { (context as? android.app.Activity)?.finish() },
-                    modifier = Modifier.padding(8.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Voltar",
-                        tint = colors.primary,
-                        modifier = Modifier.size(32.dp)
+                    IconButton(
+                        onClick = { (context as? Activity)?.finish() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Voltar",
+                            tint = colors.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = categoryName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = colors.onSurface,
+                        modifier = Modifier.weight(1f)
                     )
                 }
 
-                Text(
-                    "Categoria: $categoryName",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = colors.onSurface
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-
-                val secretKey = remember { EncryptionUtils.generateFixedKey() }
+                Spacer(modifier = Modifier.height(24.dp))
 
                 if (senhasState.value.isEmpty()) {
-                    Text("Nenhuma senha cadastrada ainda.", color = colors.onSurface)
+                    Text(
+                        text = "Nenhuma senha cadastrada.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = colors.onSurface,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
                 } else {
-                    senhasState.value.forEach { senhaItem ->
-                        val decryptedSenha = try {
-                            EncryptionUtils.decrypt(senhaItem.senhaCriptografada ?: "", secretKey)
-                        } catch (e: Exception) {
-                            "Erro ao descriptografar"
-                        }
-
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = colors.surface
-                            )
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    "Usuário: ${senhaItem.usuario ?: "-"}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = colors.onSurface
+                    LazyColumn {
+                        items(senhasState.value) { senhaItem ->
+                            val decrypted = try {
+                                EncryptionUtils.decrypt(
+                                    senhaItem.senhaCriptografada ?: "",
+                                    secretKey
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    "Descrição: ${senhaItem.descricao ?: "-"}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = colors.onSurface
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                var senhaVisivel by remember { mutableStateOf(false) }
-
-                                if (senhaVisivel) {
-                                    Text(
-                                        "Senha: $decryptedSenha",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = colors.onSurface
-                                    )
-                                } else {
-                                    Text(
-                                        "Senha: •••••••••",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = colors.onSurface
-                                    )
-                                }
-
-                                TextButton(onClick = { senhaVisivel = !senhaVisivel }) {
-                                    Text(if (senhaVisivel) "Ocultar" else "Mostrar")
-                                }
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                // Botões de editar e excluir
-                                Row {
-                                    IconButton(onClick = {
-                                        senhaParaEditar.value = senhaItem
-                                    }) {
-                                        Icon(
-                                            Icons.Default.Edit,
-                                            contentDescription = "Editar",
-                                            tint = colors.primary
-                                        )
-                                    }
-                                    IconButton(onClick = {
-                                        senhaParaExcluir.value = senhaItem
-                                        showDeleteConfirmationDialog.value = true  // Exibe o AlertDialog de confirmação
-                                    }) {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = "Excluir",
-                                            tint = Color.Red
-                                        )
-                                    }
-                                }
+                            } catch (e: Exception) {
+                                "Erro"
                             }
+
+                            SenhaCard(
+                                senha = senhaItem,
+                                decryptedSenha = decrypted,
+                                onEditar = { senhaParaEditar.value = senhaItem },
+                                onExcluir = {
+                                    senhaParaExcluir.value = senhaItem
+                                    showDeleteConfirmationDialog.value = true
+                                }
+                            )
                         }
                     }
                 }
             }
         }
+    }
 
-        // Diálogo de adicionar senha
-        if (showAddSenhaDialog.value) {
-            AddSenhaDialog(
-                categoryName = categoryName,
-                onDismiss = { showAddSenhaDialog.value = false },
-                onSave = { usuario, descricao, senha ->
-                    saveSenha(
-                        context = context,
-                        categoryName = categoryName,
-                        usuario = usuario,
-                        descricao = descricao,
-                        senha = senha
-                    ) {
-                        showAddSenhaDialog.value = false
-                        // Recarrega as senhas
-                        loadSenhas(context, categoryName) { senhas ->
-                            senhasState.value = senhas
-                        }
+    if (showAddSenhaDialog.value) {
+        AddSenhaDialog(
+            categoryName = categoryName,
+            onDismiss = { showAddSenhaDialog.value = false },
+            onSave = { usuario, descricao, senha ->
+                saveSenha(context, categoryName, usuario, descricao, senha) {
+                    showAddSenhaDialog.value = false
+                    loadSenhas(context, categoryName) { senhas ->
+                        senhasState.value = senhas
                     }
                 }
-            )
-        }
-        senhaParaEditar.value?.let { senhaItem ->
-            EditSenhaDialog(
-                categoryName = categoryName,
-                currentUsuario = senhaItem.usuario ?: "",
-                currentDescricao = senhaItem.descricao ?: "",
-                currentSenhaCriptografada = senhaItem.senhaCriptografada ?: "",
-                onDismiss = { senhaParaEditar.value = null },
-                onSave = { novoUsuario, novaDescricao, novaSenhaCriptografada ->
-                    updateSenha(
-                        context = context,
-                        categoryName = categoryName,
-                        senhaItem = senhaItem,
-                        novaSenhaCriptografada = novaSenhaCriptografada,
-                        novoUsuario = novoUsuario,
-                        novaDescricao = novaDescricao
-                    ) {
-                        senhaParaEditar.value = null
-                        loadSenhas(context, categoryName) { senhas ->
-                            senhasState.value = senhas
-                        }
+            }
+        )
+    }
+
+    senhaParaEditar.value?.let { senha ->
+        EditSenhaDialog(
+            categoryName = categoryName,
+            currentUsuario = senha.usuario,
+            currentDescricao = senha.descricao,
+            currentSenhaCriptografada = senha.senhaCriptografada ?: "",
+            onDismiss = { senhaParaEditar.value = null },
+            onSave = { novoUsuario, novaDescricao, novaSenhaCriptografada ->
+                updateSenha(
+                    context, categoryName, senha,
+                    novaSenhaCriptografada, novoUsuario, novaDescricao
+                ) {
+                    senhaParaEditar.value = null
+                    loadSenhas(context, categoryName) { senhas ->
+                        senhasState.value = senhas
                     }
                 }
-            )
-        }
+            }
+        )
+    }
 
-        if (showDeleteConfirmationDialog.value) {
-            AlertDialog(
-                onDismissRequest = { showDeleteConfirmationDialog.value = false },
-                title = { Text("Excluir Senha") },
-                text = { Text("Tem certeza de que deseja excluir esta senha?") },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            senhaParaExcluir.value?.let { senhaItem ->
-                                // Chama a função de exclusão
-                                deleteSenha(
-                                    context,
-                                    categoryName,
-                                    senhaItem.usuario,
-                                    senhaItem.descricao,
-                                    senhaItem.senhaCriptografada ?: ""
-                                ) {
-                                    // Atualiza a lista de senhas
-                                    loadSenhas(context, categoryName) { senhas ->
-                                        senhasState.value = senhas
-                                    }
-                                }
+    if (showDeleteConfirmationDialog.value) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmationDialog.value = false },
+            title = { Text("Excluir senha") },
+            text = { Text("Tem certeza que deseja excluir esta senha?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    senhaParaExcluir.value?.let { senha ->
+                        deleteSenha(
+                            context,
+                            categoryName,
+                            senha.usuario,
+                            senha.descricao,
+                            senha.senhaCriptografada ?: ""
+                        ) {
+                            loadSenhas(context, categoryName) {
+                                senhasState.value = it
                             }
-                            showDeleteConfirmationDialog.value = false // Fecha o diálogo
                         }
-                    ) {
-                        Text("Confirmar", color = Color.Red)
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDeleteConfirmationDialog.value = false }) {
-                        Text("Cancelar")
-                    }
+                    showDeleteConfirmationDialog.value = false
+                }) {
+                    Text("Confirmar", color = Color.Red)
                 }
-            )
-        }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmationDialog.value = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 
@@ -493,14 +433,14 @@ fun AddSenhaDialog(
     var usuario by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
     var senha by remember { mutableStateOf("") }
-    var encryptedSenha by remember { mutableStateOf("") }
     val secretKey = remember { EncryptionUtils.generateFixedKey() }
 
-    androidx.compose.material3.AlertDialog(
+    AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = { Text("Adicionar Senha") },
         text = {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextField(
                     value = usuario,
                     onValueChange = { usuario = it },
@@ -519,9 +459,9 @@ fun AddSenhaDialog(
             }
         },
         confirmButton = {
-            androidx.compose.material3.TextButton(
+            TextButton(
                 onClick = {
-                    encryptedSenha = EncryptionUtils.encrypt(senha, secretKey)
+                    val encryptedSenha = EncryptionUtils.encrypt(senha, secretKey)
                     if (encryptedSenha.isNotBlank()) {
                         onSave(
                             usuario.takeIf { it.isNotBlank() },
@@ -535,7 +475,7 @@ fun AddSenhaDialog(
             }
         },
         dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss) {
                 Text("Cancelar")
             }
         }
@@ -565,9 +505,10 @@ fun EditSenhaDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = { Text("Editar Senha") },
         text = {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextField(
                     value = usuario,
                     onValueChange = { usuario = it },
@@ -609,6 +550,53 @@ fun EditSenhaDialog(
             }
         }
     )
+}
+
+@Composable
+fun SenhaCard(
+    senha: Senha,
+    decryptedSenha: String,
+    onEditar: () -> Unit,
+    onExcluir: () -> Unit
+) {
+    var showPassword by remember { mutableStateOf(false) }
+    val backgroundColor = MaterialTheme.colorScheme.surface
+    val textColor = MaterialTheme.colorScheme.onSurface
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Usuário: ${senha.usuario ?: "-"}", color = textColor, style = MaterialTheme.typography.bodyLarge)
+            Text("Descrição: ${senha.descricao ?: "-"}", color = textColor)
+            Text(
+                text = "Senha: ${if (showPassword) decryptedSenha else "•".repeat(decryptedSenha.length.coerceAtMost(20))}",
+                color = textColor
+            )
+
+            Text(
+                text = if (showPassword) "Ocultar" else "Mostrar",
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .clickable { showPassword = !showPassword }
+            )
+
+            Row(modifier = Modifier.padding(top = 8.dp)) {
+                IconButton(onClick = onEditar) {
+                    Icon(Icons.Default.Edit, contentDescription = "Editar", tint = MaterialTheme.colorScheme.onSurface)
+                }
+                IconButton(onClick = onExcluir) {
+                    Icon(Icons.Default.Delete, contentDescription = "Deletar", tint = Color.Red)
+                }
+            }
+        }
+    }
 }
 
 @Composable

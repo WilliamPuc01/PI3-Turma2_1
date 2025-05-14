@@ -3,10 +3,8 @@ package com.projetointegrador3.superid.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Paleta do Figma
-val CampoTexto = Color(0xFF524726)
-val BotaoDourado = Color(0xFFDAAA1A)
 
+val BotaoDourado = Color(0xFFDAAA1A)
 
 
 // Tema Claro
@@ -14,7 +12,7 @@ val LightPrimary = BotaoDourado
 val LightOnPrimary = Color.Black
 val LightBackground = Color.White
 val LightOnBackground = Color.Black
-val LightSurface = Color(0xFFF5F5F5)
+val LightSurface = Color(0xFFE0E0E0)
 val LightOnSurface = Color.Black
 
 // Tema Escuro
