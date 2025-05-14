@@ -8,7 +8,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,10 +27,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,9 +37,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,24 +47,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lint.kotlin.metadata.Visibility
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.projetointegrador3.superid.ui.theme.SuperIDTheme
 import java.security.SecureRandom
 import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
-import com.projetointegrador3.superid.BackgroundImage
-import com.projetointegrador3.superid.ui.theme.BotaoDourado
-import com.projetointegrador3.superid.ui.theme.SuperIDTheme
 
 class CategoryDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -253,6 +242,76 @@ fun updateSenha(
         }
 }
 
+fun updateCategoria(
+    context: Context,
+    categoriaAtual: String,
+    novoNome: String,
+    onComplete: () -> Unit
+) {
+    val db = FirebaseFirestore.getInstance()
+    val user = FirebaseAuth.getInstance().currentUser ?: return
+
+    val userRef = db.collection("usuarios").document(user.uid)
+    val categoriaRef = userRef.collection("categorias").document(categoriaAtual)
+
+    categoriaRef.get().addOnSuccessListener { document ->
+        if (document.exists()) {
+            val dadosCategoria = document.data ?: return@addOnSuccessListener
+
+            // Copia os dados para o novo nome
+            userRef.collection("categorias").document(novoNome).set(dadosCategoria)
+                .addOnSuccessListener {
+                    // Agora copia as senhas
+                    categoriaRef.collection(categoriaAtual).get()
+                        .addOnSuccessListener { snapshot ->
+                            val batch = db.batch()
+                            snapshot.documents.forEach { senhaDoc ->
+                                val novaRef = userRef.collection("categorias")
+                                    .document(novoNome)
+                                    .collection(novoNome)
+                                    .document(senhaDoc.id)
+                                batch.set(novaRef, senhaDoc.data ?: return@forEach)
+                            }
+
+                            batch.commit().addOnSuccessListener {
+                                // Remove categoria antiga
+                                categoriaRef.delete().addOnSuccessListener {
+                                    onComplete()
+                                    Toast.makeText(context, "Categoria renomeada com sucesso", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                }
+        }
+    }
+}
+
+fun deleteCategoria(
+    context: Context,
+    nomeCategoria: String,
+    onComplete: () -> Unit
+) {
+    val db = FirebaseFirestore.getInstance()
+    val user = FirebaseAuth.getInstance().currentUser ?: return
+
+    val categoriaRef = db.collection("usuarios").document(user.uid)
+        .collection("categorias").document(nomeCategoria)
+
+    categoriaRef.collection(nomeCategoria).get()
+        .addOnSuccessListener { result ->
+            val batch = db.batch()
+            for (document in result) {
+                batch.delete(categoriaRef.collection(nomeCategoria).document(document.id))
+            }
+            batch.commit().addOnSuccessListener {
+                categoriaRef.delete().addOnSuccessListener {
+                    Toast.makeText(context, "Categoria excluída", Toast.LENGTH_SHORT).show()
+                    onComplete()
+                }
+            }
+        }
+}
+
 @Composable
 fun CategoryDetailScreen(categoryName: String) {
     val context = LocalContext.current
@@ -262,6 +321,8 @@ fun CategoryDetailScreen(categoryName: String) {
     val showDeleteConfirmationDialog = remember { mutableStateOf(false) }
     val senhaParaExcluir = remember { mutableStateOf<Senha?>(null) }
     val secretKey = remember { EncryptionUtils.generateFixedKey() }
+    val showEditCategoryDialog = remember { mutableStateOf(false) }
+    val showDeleteCategoryDialog = remember { mutableStateOf(false) }
 
     val colors = MaterialTheme.colorScheme
 
@@ -318,7 +379,17 @@ fun CategoryDetailScreen(categoryName: String) {
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.width(48.dp))
+                    Spacer(modifier = Modifier.width(2.dp))
+
+                    // Não mostra na categoria "Sites Web" por ser padrão e obrigatória
+                    if (categoryName != "Sites Web") {
+                        IconButton(onClick = { showEditCategoryDialog.value = true }) {
+                            Icon(imageVector = Icons.Default.Edit, contentDescription = "Editar Categoria", tint = colors.primary)
+                        }
+                        IconButton(onClick = { showDeleteCategoryDialog.value = true }) {
+                            Icon(imageVector = Icons.Default.Delete, contentDescription = "Excluir Categoria", tint = Color.Red)
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -421,6 +492,57 @@ fun CategoryDetailScreen(categoryName: String) {
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirmationDialog.value = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+    if (showEditCategoryDialog.value) {
+        var novoNome by remember { mutableStateOf(categoryName) }
+        AlertDialog(
+            onDismissRequest = { showEditCategoryDialog.value = false },
+            title = { Text("Renomear Categoria") },
+            text = {
+                TextField(
+                    value = novoNome,
+                    onValueChange = { novoNome = it },
+                    label = { Text("Novo nome da categoria") }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    updateCategoria(context, categoryName, novoNome) {
+                        (context as? Activity)?.finish()
+                    }
+                    showEditCategoryDialog.value = false
+                }) {
+                    Text("Salvar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditCategoryDialog.value = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+    if (showDeleteCategoryDialog.value) {
+        AlertDialog(
+            onDismissRequest = { showDeleteCategoryDialog.value = false },
+            title = { Text("Excluir Categoria") },
+            text = { Text("Tem certeza que deseja excluir esta categoria e todas as senhas dentro dela?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    deleteCategoria(context, categoryName) {
+                        (context as? Activity)?.finish()
+                    }
+                    showDeleteCategoryDialog.value = false
+                }) {
+                    Text("Confirmar", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteCategoryDialog.value = false }) {
                     Text("Cancelar")
                 }
             }
