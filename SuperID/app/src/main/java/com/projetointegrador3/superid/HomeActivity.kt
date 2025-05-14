@@ -66,8 +66,6 @@
         import com.projetointegrador3.superid.ui.theme.SuperIDTheme
         import com.projetointegrador3.superid.BackgroundImage
         import com.projetointegrador3.superid.ui.theme.BotaoDourado
-        import com.projetointegrador3.superid.ui.theme.CardDarkBackground
-        import com.projetointegrador3.superid.ui.theme.CardLightBackground
         import com.projetointegrador3.superid.ui.theme.DarkPrimary
         import com.projetointegrador3.superid.ui.theme.LightPrimary
 

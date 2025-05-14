@@ -23,5 +23,3 @@ val DarkOnBackground = Color.White
 val DarkSurface = Color(0xFF1E1E1E)
 val DarkOnSurface = Color.White
 
-val CardLightBackground = Color(0xFFFFF6DC) // um bege claro com contraste
-val CardDarkBackground = DarkSurface

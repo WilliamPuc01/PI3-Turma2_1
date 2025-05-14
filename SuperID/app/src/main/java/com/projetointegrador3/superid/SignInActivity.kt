@@ -311,7 +311,7 @@ fun LoginScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                 // Mensagem de erro ou sucesso
                 if (message.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = message, color = MaterialTheme.colorScheme.onPrimary)
+                    Text(text = message, color = MaterialTheme.colorScheme.onSurface)
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))

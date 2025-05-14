@@ -54,6 +54,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lint.kotlin.metadata.Visibility
@@ -67,8 +71,6 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import com.projetointegrador3.superid.BackgroundImage
 import com.projetointegrador3.superid.ui.theme.BotaoDourado
-import com.projetointegrador3.superid.ui.theme.CardDarkBackground
-import com.projetointegrador3.superid.ui.theme.CardLightBackground
 import com.projetointegrador3.superid.ui.theme.SuperIDTheme
 
 class CategoryDetailActivity : ComponentActivity() {
@@ -295,7 +297,9 @@ fun CategoryDetailScreen(categoryName: String) {
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
                 ) {
                     IconButton(
                         onClick = { (context as? Activity)?.finish() }
@@ -309,10 +313,12 @@ fun CategoryDetailScreen(categoryName: String) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = categoryName,
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
                         color = colors.onSurface,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center
                     )
+                    Spacer(modifier = Modifier.width(48.dp))
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -423,7 +429,7 @@ fun CategoryDetailScreen(categoryName: String) {
 }
 
 
-
+//dialog para criar uma nova senha na categoria
 @Composable
 fun AddSenhaDialog(
     categoryName: String,
@@ -471,17 +477,20 @@ fun AddSenhaDialog(
                     }
                 }
             ) {
-                Text("Salvar")
+                Text(text ="Salvar",
+                color = MaterialTheme.colorScheme.onBackground)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(text ="Cancelar",
+                color = MaterialTheme.colorScheme.onBackground)
             }
         }
     )
 }
 
+//Dialog pra editar uma senha
 @Composable
 fun EditSenhaDialog(
     categoryName: String,
@@ -526,7 +535,8 @@ fun EditSenhaDialog(
                     singleLine = true,
                     trailingIcon = {
                         TextButton(onClick = { senhaVisivel = !senhaVisivel }) {
-                            Text(if (senhaVisivel) "Ocultar" else "Mostrar")
+                            Text( text = if (senhaVisivel) "Ocultar" else "Mostrar",
+                                color = MaterialTheme.colorScheme.onBackground)
                         }
                     }
                 )
@@ -541,17 +551,21 @@ fun EditSenhaDialog(
                     senhaCriptografada
                 )
             }) {
-                Text("Salvar")
+                Text(
+                    text =  "Salvar",
+                    color = MaterialTheme.colorScheme.onBackground)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(text = "Cancelar",
+                    color = MaterialTheme.colorScheme.onBackground)
             }
         }
     )
 }
 
+//DEFINIÇÃO DOS CARDS DE SENHA
 @Composable
 fun SenhaCard(
     senha: Senha,
@@ -560,39 +574,74 @@ fun SenhaCard(
     onExcluir: () -> Unit
 ) {
     var showPassword by remember { mutableStateOf(false) }
-    val backgroundColor = MaterialTheme.colorScheme.surface
-    val textColor = MaterialTheme.colorScheme.onSurface
+    val colors = MaterialTheme.colorScheme
 
     Card(
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = colors.surface),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(vertical = 8.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Usuário: ${senha.usuario ?: "-"}", color = textColor, style = MaterialTheme.typography.bodyLarge)
-            Text("Descrição: ${senha.descricao ?: "-"}", color = textColor)
+        Column(modifier = Modifier.padding(20.dp)) {
             Text(
-                text = "Senha: ${if (showPassword) decryptedSenha else "•".repeat(decryptedSenha.length.coerceAtMost(20))}",
-                color = textColor
+                text = senha.usuario ?: "-",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = colors.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Descrição: ${senha.descricao ?: "-"}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Senha: ${
+                    if (showPassword)
+                        decryptedSenha
+                    else
+                        "•".repeat(decryptedSenha.length.coerceAtMost(16))
+                }",
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurface
             )
 
             Text(
                 text = if (showPassword) "Ocultar" else "Mostrar",
-                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    color = colors.onPrimary,
+                    textDecoration = TextDecoration.Underline
+                ),
                 modifier = Modifier
-                    .padding(top = 4.dp)
+                    .padding(top = 6.dp)
                     .clickable { showPassword = !showPassword }
             )
 
-            Row(modifier = Modifier.padding(top = 8.dp)) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 IconButton(onClick = onEditar) {
-                    Icon(Icons.Default.Edit, contentDescription = "Editar", tint = MaterialTheme.colorScheme.onSurface)
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Editar",
+                        tint = colors.onPrimary
+                    )
                 }
                 IconButton(onClick = onExcluir) {
-                    Icon(Icons.Default.Delete, contentDescription = "Deletar", tint = Color.Red)
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Excluir",
+                        tint = Color.Red
+                    )
                 }
             }
         }
