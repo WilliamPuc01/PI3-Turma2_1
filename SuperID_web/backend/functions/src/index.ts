@@ -30,3 +30,31 @@ export const performAuth = functions.https.onRequest(async (req, res) => {
   const qrBase64 = await QRCode.toDataURL(token);
   res.status(200).json({ qrCode: qrBase64, loginToken: token });
 });
+
+export const getLoginStatus = functions.https.onRequest(
+  async (req, res): Promise<void> => {
+    const { loginToken } = req.body;
+
+    if (!loginToken) {
+      res.status(400).json({ error: "Token ausente" });
+      return;
+    }
+
+    const doc = await db.collection("login").doc(loginToken).get();
+    if (!doc.exists) {
+      res.status(404).json({ error: "Token inválido" });
+      return;
+    }
+
+    const data = doc.data();
+    if (data?.user) {
+      res.status(200).json({
+        status: "confirmado",
+        uid: data.user,
+        loginTime: data.loginTime,
+      });
+    } else {
+      res.status(202).json({ status: "aguardando confirmação" });
+    }
+  }
+);
