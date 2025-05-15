@@ -33,8 +33,10 @@
         import androidx.compose.material.icons.filled.Favorite
         import androidx.compose.material.icons.filled.Home
         import androidx.compose.material.icons.filled.Lock
+        import androidx.compose.material.icons.filled.Logout
         import androidx.compose.material.icons.filled.Menu
         import androidx.compose.material.icons.filled.Search
+        import androidx.compose.material3.AlertDialog
         import androidx.compose.material3.Card
         import androidx.compose.material3.CardDefaults
         import androidx.compose.material3.ExperimentalMaterial3Api
@@ -87,6 +89,7 @@
             var searchText by remember { mutableStateOf("") }
             val context = LocalContext.current
             val categoriasState = remember { mutableStateOf<List<String>>(emptyList()) }
+            var showLogoutDialog by remember { mutableStateOf(false) }
 
             // Inicia o listener do Firestore
             LaunchedEffect(Unit) {
@@ -101,25 +104,40 @@
                     modifier = Modifier.fillMaxSize(),
                     topBar = {
                         Column {
-                            Image(
-                                painter = painterResource(R.drawable.superid_removebg),
-                                contentDescription = "Logo SuperID",
-                                modifier = Modifier
-                                    .height(124.dp)
-                                    .align(Alignment.CenterHorizontally)
-                                    .padding(2.dp)
-                            )
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                Image(
+                                    painter = painterResource(R.drawable.superid_removebg),
+                                    contentDescription = "Logo SuperID",
+                                    modifier = Modifier
+                                        .height(124.dp)
+                                        .align(Alignment.Center)
+                                        .padding(2.dp)
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Logout,
+                                    contentDescription = "Logout",
+                                    modifier = Modifier
+                                        .align(Alignment.CenterEnd)
+                                        .padding(16.dp)
+                                        .clickable {
+                                            showLogoutDialog = true
+                                        }
+                                )
+                            }
+
                             Text(
                                 "Categorias",
                                 style = MaterialTheme.typography.titleLarge,
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
+
                             SearchBar(
                                 query = searchText,
                                 onQueryChange = { searchText = it }
                             )
                         }
-                    },
+                    }
+                    ,
                     floatingActionButton = {
                         FloatingActionButton(
                             onClick = { /* funcionalidade futura */ },
@@ -130,7 +148,38 @@
                         }
                     },
 
-                ) { padding ->
+                )
+                { padding ->
+
+                    if (showLogoutDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showLogoutDialog = false },
+                            confirmButton = {
+                               Text(
+                                    "Sair",
+                                    modifier = Modifier
+                                        .clickable {
+                                            signOut(context)
+                                            showLogoutDialog = false
+                                        }
+                                        .padding(8.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            },
+                            dismissButton = {
+                                Text(
+                                    "Cancelar",
+                                    modifier = Modifier
+                                        .clickable { showLogoutDialog = false }
+                                        .padding(8.dp),
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            },
+                            title = { Text("Confirmar Logout") },
+                            text = { Text("Tem certeza que deseja sair da sua conta?") }
+                        )
+                    }
+
 
                     // Box com fundo preto ou branco conforme o tema
                     Box(
@@ -161,13 +210,14 @@
             }
         }
 
+
         fun getIconForCategory(nome: String): ImageVector {
             return when (nome) {
                 "Sites Web" -> Icons.Default.Email
                 "Aplicativos" -> Icons.Default.Favorite
                 "Teclados Fisicos" -> Icons.Default.Menu
                 "Codigos" -> Icons.Default.Lock
-                else -> Icons.Default.Lock // Ícone padrão
+                else -> Icons.Default.Lock
             }
         }
 
@@ -257,7 +307,7 @@
 
 
 
-        @OptIn(ExperimentalMaterial3Api::class)
+//  Barra de pesquisa de categorias
         @Composable
         fun SearchBar(
             query: String,
@@ -286,4 +336,15 @@
                 )
 
             )
+        }
+
+        //logica pro logout
+
+        fun signOut(context: Context) {
+            FirebaseAuth.getInstance().signOut()
+            Toast.makeText(context, "Logout realizado", Toast.LENGTH_SHORT).show()
+
+            val intent = Intent(context, SignInActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            context.startActivity(intent)
         }
