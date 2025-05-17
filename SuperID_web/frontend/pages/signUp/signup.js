@@ -20,31 +20,9 @@ function togglePasswordVisibility(fieldId, button) {
     }
 }
 
-
-/*
-function dataMinima(){
-    const data = new Date();
-    const d = String(data.getFullYear() - 18) + "-" + String(data.getMonth()+1).padStart(2, '0') + "-" + String(data.getDate()).padStart(2, '0');
-    
-    return d;
+function senhaIgual(senha1, senha2) {
+    return senha1 === senha2;
 }
-window.dataMinima = dataMinima;
-
-document.getElementById("dataNascimento").max = dataMinima();
-*/
-
-function senhaIgual(senha1,senha2){
-    var correto;
-    if(senha1 != senha2){
-        correto = false
-    }
-    else{
-        correto = true
-    }
-return correto;
-}
-
-
 
 function isValid(name, email, password, date,password2 ){
     var valid = false;
@@ -81,7 +59,6 @@ function isValid(name, email, password, date,password2 ){
     }
 
 async function performSignUp(){   
-    console.log('a')
     var name = document.getElementById("fieldNome").value;
     var email = document.getElementById("fieldEmail").value;
     var password = document.getElementById("fieldPassword").value;
@@ -119,3 +96,72 @@ async function performSignUp(){
 window.performSignUp = performSignUp;
 
 window.togglePasswordVisibility = togglePasswordVisibility;
+
+
+async function entrarComSuperID() {
+  const apiKey = "Dd...O8wp"; // sua API real
+  const siteUrl = "www.japabet.com.br";
+
+  try {
+    // Primeiro busca o QR Code
+    const response = await fetch("https://us-central1-superid-760b7.cloudfunctions.net/performAuth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apiKey, siteUrl }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.qrCode || !result.loginToken) {
+      alert(result.error || "Erro ao gerar QR Code.");
+      return;
+    }
+
+    const { qrCode, loginToken } = result;
+
+    // Só abre a janela depois que o QR estiver pronto
+    const qrWindow = window.open("", "_blank", "width=400,height=500");
+
+    qrWindow.document.write(`
+      <html>
+        <head><title>SuperID Login</title></head>
+        <body style="text-align: center; font-family: sans-serif;">
+          <h2>Escaneie com o app SuperID</h2>
+          <img src="${qrCode}" width="300" height="300" />
+          <p id="status">Aguardando autenticação...</p>
+        </body>
+      </html>
+    `);
+
+    // Faz polling para saber se o login foi confirmado
+    const interval = setInterval(async () => {
+      const statusRes = await fetch("https://us-central1-superid-760b7.cloudfunctions.net/getLoginStatus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loginToken }),
+      });
+
+      const statusData = await statusRes.json();
+
+      if (statusRes.status === 200 && statusData.status === "confirmado") {
+        clearInterval(interval);
+        qrWindow.close();
+        alert("Login confirmado com SuperID!");
+        window.location.href = "/frontend/pages/home/home.html";
+      }
+
+      if (statusRes.status === 410 || statusRes.status === 404) {
+        clearInterval(interval);
+        qrWindow.document.getElementById("status").textContent = "Token expirado ou inválido.";
+        setTimeout(() => qrWindow.close(), 3000);
+      }
+
+    }, 3000);
+  } catch (err) {
+    console.error("Erro:", err);
+    alert("Erro ao conectar com o servidor.");
+  }
+}
+
+window.entrarComSuperID = entrarComSuperID;
+document.getElementById("superidBtn").addEventListener("click", entrarComSuperID);
