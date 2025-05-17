@@ -69,11 +69,11 @@ class CategoryDetailActivity : ComponentActivity() {
 
         setContent {
             SuperIDTheme {
-            CategoryDetailScreen(categoryName = categoryName)
+                CategoryDetailScreen(categoryName = categoryName)
+            }
         }
     }
 }
-    }
 
 data class Senha(
     val id: String,
@@ -115,6 +115,7 @@ fun saveSenha(
     usuario: String?,
     descricao: String?,
     senha: String,
+    accessToken: String,
     onComplete: () -> Unit
 ) {
     val db = FirebaseFirestore.getInstance()
@@ -123,7 +124,8 @@ fun saveSenha(
     val novaSenha = hashMapOf(
         "usuario" to usuario,
         "descricao" to descricao,
-        "senha" to senha
+        "senha" to senha,
+        "AccessToken" to accessToken
     )
 
     db.collection("usuarios")
@@ -144,6 +146,13 @@ fun saveSenha(
 object EncryptionUtils {
 
     private const val TRANSFORMATION = "AES/CBC/PKCS5Padding"
+
+
+    fun generateAccessToken(): String {
+        val randomBytes = ByteArray(192) // 192 bytes codificados ≈ 256 caracteres em Base64
+        SecureRandom().nextBytes(randomBytes)
+        return Base64.getEncoder().encodeToString(randomBytes)
+    }
 
     fun generateFixedKey(): SecretKeySpec {
         val keyBytes = ByteArray(32) { 0x01 }
@@ -215,6 +224,7 @@ fun updateSenha(
     novaSenhaCriptografada: String,
     novoUsuario: String?,
     novaDescricao: String?,
+    accessToken: String,
     onComplete: () -> Unit
 ) {
     val db = FirebaseFirestore.getInstance()
@@ -223,7 +233,8 @@ fun updateSenha(
     val senhaAtualizada = hashMapOf(
         "usuario" to novoUsuario,
         "descricao" to novaDescricao,
-        "senha" to novaSenhaCriptografada
+        "senha" to novaSenhaCriptografada,
+        "acessToken" to accessToken
     )
 
     db.collection("usuarios")
@@ -323,6 +334,8 @@ fun CategoryDetailScreen(categoryName: String) {
     val secretKey = remember { EncryptionUtils.generateFixedKey() }
     val showEditCategoryDialog = remember { mutableStateOf(false) }
     val showDeleteCategoryDialog = remember { mutableStateOf(false) }
+    var accessToken by remember { mutableStateOf(EncryptionUtils.generateAccessToken()) }
+
 
     val colors = MaterialTheme.colorScheme
 
@@ -433,8 +446,8 @@ fun CategoryDetailScreen(categoryName: String) {
         AddSenhaDialog(
             categoryName = categoryName,
             onDismiss = { showAddSenhaDialog.value = false },
-            onSave = { usuario, descricao, senha ->
-                saveSenha(context, categoryName, usuario, descricao, senha) {
+            onSave = { usuario, descricao, senha, accessToken ->
+                saveSenha(context, categoryName, usuario, descricao, senha, accessToken) {
                     showAddSenhaDialog.value = false
                     loadSenhas(context, categoryName) { senhas ->
                         senhasState.value = senhas
@@ -451,10 +464,10 @@ fun CategoryDetailScreen(categoryName: String) {
             currentDescricao = senha.descricao,
             currentSenhaCriptografada = senha.senhaCriptografada ?: "",
             onDismiss = { senhaParaEditar.value = null },
-            onSave = { novoUsuario, novaDescricao, novaSenhaCriptografada ->
+            onSave = { novoUsuario, novaDescricao, novaSenhaCriptografada, acessToken ->
                 updateSenha(
                     context, categoryName, senha,
-                    novaSenhaCriptografada, novoUsuario, novaDescricao
+                    novaSenhaCriptografada, novoUsuario, novaDescricao, accessToken
                 ) {
                     senhaParaEditar.value = null
                     loadSenhas(context, categoryName) { senhas ->
@@ -556,12 +569,14 @@ fun CategoryDetailScreen(categoryName: String) {
 fun AddSenhaDialog(
     categoryName: String,
     onDismiss: () -> Unit,
-    onSave: (String?, String?, String) -> Unit
+    onSave: (String?, String?, String, String) -> Unit
 ) {
     var usuario by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
     var senha by remember { mutableStateOf("") }
     val secretKey = remember { EncryptionUtils.generateFixedKey() }
+    var accessToken by remember { mutableStateOf(EncryptionUtils.generateAccessToken()) }
+
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -590,23 +605,25 @@ fun AddSenhaDialog(
             TextButton(
                 onClick = {
                     val encryptedSenha = EncryptionUtils.encrypt(senha, secretKey)
+
                     if (encryptedSenha.isNotBlank()) {
                         onSave(
                             usuario.takeIf { it.isNotBlank() },
                             descricao.takeIf { it.isNotBlank() },
-                            encryptedSenha
+                            encryptedSenha,
+                            accessToken
                         )
                     }
                 }
             ) {
                 Text(text ="Salvar",
-                color = MaterialTheme.colorScheme.onBackground)
+                    color = MaterialTheme.colorScheme.onBackground)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(text ="Cancelar",
-                color = MaterialTheme.colorScheme.onBackground)
+                    color = MaterialTheme.colorScheme.onBackground)
             }
         }
     )
@@ -620,10 +637,11 @@ fun EditSenhaDialog(
     currentDescricao: String?,
     currentSenhaCriptografada: String,
     onDismiss: () -> Unit,
-    onSave: (String?, String?, String) -> Unit
+    onSave: (String?, String?, String, String) -> Unit
 ) {
     var usuario by remember { mutableStateOf(currentUsuario ?: "") }
     var descricao by remember { mutableStateOf(currentDescricao ?: "") }
+    var accessToken by remember { mutableStateOf(EncryptionUtils.generateAccessToken()) }
     val decryptedSenha = try {
         EncryptionUtils.decrypt(currentSenhaCriptografada, EncryptionUtils.generateFixedKey())
     } catch (e: Exception) {
@@ -670,7 +688,8 @@ fun EditSenhaDialog(
                 onSave(
                     usuario.takeIf { it.isNotBlank() },
                     descricao.takeIf { it.isNotBlank() },
-                    senhaCriptografada
+                    senhaCriptografada,
+                    accessToken
                 )
             }) {
                 Text(
