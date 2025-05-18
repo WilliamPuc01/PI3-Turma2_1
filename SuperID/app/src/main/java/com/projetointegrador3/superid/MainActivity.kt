@@ -32,6 +32,16 @@ import androidx.compose.runtime.setValue
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
+import androidx.core.net.toUri
+import android.net.Uri
+import android.net.Uri.parse
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 
 class MainActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
@@ -126,6 +136,7 @@ fun WelcomeScreen(
                     },
                     text = {
                         Column(
+
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -157,11 +168,41 @@ fun WelcomeScreen(
                             Spacer(modifier = Modifier.height(20.dp))
 
 
-                            Text(
-                                text = "TERMOS DE USO",
-                                fontSize = 14.sp,
-                                color = Color.White,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            val annotatedText = buildAnnotatedString {
+                                val termosUrl = "https://firebasestorage.googleapis.com/v0/b/superid-760b7.firebasestorage.app/o/SuperID-Termos%20de%20Uso.pdf?alt=media&token=3a7cf7a4-0663-47d3-b114-84bda9cccde1"
+
+                                pushStringAnnotation(
+                                    tag = "URL",
+                                    annotation = termosUrl
+                                )
+                                withStyle(
+                                    style = SpanStyle(
+                                        color = Color(0xFF64B5F6), // azul claro para link
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                ) {
+                                    append("TERMOS DE USO")
+                                }
+                                pop()
+                            }
+
+                            val uriHandler = LocalContext.current
+
+                            BasicText(
+                                text = annotatedText,
+                                modifier = Modifier
+                                    .clickable {
+                                        annotatedText.getStringAnnotations(tag = "URL", start = 0, end = annotatedText.length)
+                                            .firstOrNull()?.let { annotation ->
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(annotation.item))
+                                                uriHandler.startActivity(intent)
+                                            }
+                                    }
+                                    .padding(8.dp),
+                                style = LocalTextStyle.current.copy(
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 14.sp
+                                )
                             )
                             Spacer(modifier = Modifier.height(16.dp))
 
