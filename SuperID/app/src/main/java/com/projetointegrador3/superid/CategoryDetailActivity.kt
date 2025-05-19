@@ -48,6 +48,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
@@ -669,10 +671,14 @@ fun EditSenhaDialog(
                     label = { Text("Descrição (opcional)") }
                 )
                 TextField(
-                    value = if (senhaVisivel) senha else "•".repeat(senha.length),
+                    value = senha,
                     onValueChange = { senha = it },
                     label = { Text("Senha") },
                     singleLine = true,
+                    visualTransformation = if (senhaVisivel)
+                        VisualTransformation.None
+                    else
+                        PasswordVisualTransformation(),
                     trailingIcon = {
                         TextButton(onClick = { senhaVisivel = !senhaVisivel }) {
                             Text( text = if (senhaVisivel) "Ocultar" else "Mostrar",
