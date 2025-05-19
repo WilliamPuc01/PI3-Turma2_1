@@ -149,7 +149,7 @@ fun WelcomeScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "Aqui você tem o armazenamento seguro de senhas para logar nos nossos sites parceiros",
+                                text = "Aqui você tem o armazenamento seguro de senhas e pode logar nos nossos sites parceiros",
                                 fontSize = 16.sp,
                                 color = Color.White,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center // Alinhar texto no centro
@@ -158,7 +158,7 @@ fun WelcomeScreen(
 
                             Image(
                                 painter = painterResource(R.drawable.superid_exemplo),
-                                contentDescription = "salve e categorize suas senhas",
+                                contentDescription = "Salve e categorize suas senhas!",
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(400.dp),
