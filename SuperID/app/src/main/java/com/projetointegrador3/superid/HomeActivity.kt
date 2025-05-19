@@ -36,6 +36,7 @@
         import androidx.compose.material.icons.filled.Logout
         import androidx.compose.material.icons.filled.Menu
         import androidx.compose.material.icons.filled.Search
+        import androidx.compose.material.icons.rounded.QrCode
         import androidx.compose.material3.AlertDialog
         import androidx.compose.material3.Card
         import androidx.compose.material3.CardDefaults
@@ -62,6 +63,7 @@
         import androidx.compose.ui.platform.LocalContext
         import androidx.compose.ui.res.painterResource
         import androidx.compose.ui.text.style.TextAlign
+        import androidx.compose.ui.tooling.preview.Preview
         import androidx.compose.ui.unit.dp
         import com.google.firebase.auth.FirebaseAuth
         import com.google.firebase.firestore.FirebaseFirestore
@@ -140,11 +142,12 @@
                     ,
                     floatingActionButton = {
                         FloatingActionButton(
-                            onClick = { /* funcionalidade futura */ },
+                            onClick = {val intent = Intent(context, QrScannerActivity::class.java)
+                                        context.startActivity(intent)},
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = Color.Black
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = "Entrar com o SuperID")
+                            Icon(imageVector = Icons.Rounded.QrCode, contentDescription = "QR Code")
                         }
                     },
 
@@ -347,4 +350,11 @@
             val intent = Intent(context, SignInActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             context.startActivity(intent)
+        }
+
+
+        @Preview
+        @Composable
+        fun HomeScreenPreview(){
+            HomeScreen()
         }
