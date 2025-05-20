@@ -4,8 +4,16 @@ const SUPERID_API_KEY = "DdhxT9c1zKCAwFEPWMlFGiS8t3nPpTHVjlsdiqoNo6TmzGngO8wpmu6
 const SITE_URL = "www.japabet.com.br";
 
 // Essa função é chamada somente ao clicar em "Entrar com SuperID"
+let qrWindow = null;
+let qrInterval = null;
+
 window.entrarComSuperID = async function () {
-  const qrWindow = window.open("", "_blank", "width=400,height=500");
+  if (qrWindow && !qrWindow.closed) {
+    qrWindow.focus();
+    return;
+  }
+
+  qrWindow = window.open("", "_blank", "width=400,height=500");
 
   try {
     const response = await fetch(SUPERID_AUTH_URL, {
@@ -22,9 +30,12 @@ window.entrarComSuperID = async function () {
       qrWindow.document.write(`
         <h2 style="text-align:center;">Escaneie com o app SuperID</h2>
         <img src="${result.qrCode}" style="display:block;margin:auto;width:300px;height:300px;">
-        `);
+      `);
 
-      const interval = setInterval(async () => {
+      // Cancela interval anterior, se ainda existir
+      if (qrInterval) clearInterval(qrInterval);
+
+      qrInterval = setInterval(async () => {
         try {
           const statusRes = await fetch(SUPERID_STATUS_URL, {
             method: "POST",
@@ -35,9 +46,13 @@ window.entrarComSuperID = async function () {
           const statusData = await statusRes.json();
 
           if (statusRes.ok && statusData.status === "confirmado") {
-            clearInterval(interval);
+            clearInterval(qrInterval);
+            qrInterval = null;
             qrWindow.close();
-            alert("Login autorizado via SuperID!");
+            qrWindow.document.body.innerHTML = `
+              <h2 style="text-align:center;color:green;">✅ Login realizado com sucesso via SuperID!</h2>
+              <p style="text-align:center;">Você já pode fechar esta janela.</p>
+            `;
           }
         } catch (err) {
           console.log("Erro ao verificar status:", err);

@@ -310,7 +310,7 @@ fun confirmarLoginToken(token: String, userUid: String) {
         "timestamp" to FieldValue.serverTimestamp()
     )
 
-    docRef.set(data)
+    docRef.set(data, SetOptions.merge())
         .addOnSuccessListener {
             Log.d("SuperID", "Login confirmado e salvo no Firestore")
         }
