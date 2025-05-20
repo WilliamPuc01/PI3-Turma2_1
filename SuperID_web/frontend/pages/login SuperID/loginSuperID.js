@@ -35,7 +35,7 @@ window.entrarComSuperID = async function () {
 
           const statusData = await statusRes.json();
 
-          if (statusRes.ok && statusData.success) {
+          if (statusRes.ok && statusData.status === "confirmado") {
             clearInterval(interval);
             qrWindow.close();
             alert("Login autorizado via SuperID!");
@@ -43,7 +43,7 @@ window.entrarComSuperID = async function () {
         } catch (err) {
           console.log("Erro ao verificar status:", err);
         }
-      }, 2000);
+      }, 5000);
 
     } else {
       qrWindow.document.write(`<p>${result.error || "Erro ao gerar QR Code."}</p>`);
