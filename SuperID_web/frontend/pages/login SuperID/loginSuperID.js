@@ -22,8 +22,7 @@ window.entrarComSuperID = async function () {
       qrWindow.document.write(`
         <h2 style="text-align:center;">Escaneie com o app SuperID</h2>
         <img src="${result.qrCode}" style="display:block;margin:auto;width:300px;height:300px;">
-        <p style="text-align:center;">Token: ${loginToken}</p>
-      `);
+        `);
 
       const interval = setInterval(async () => {
         try {
@@ -43,7 +42,7 @@ window.entrarComSuperID = async function () {
         } catch (err) {
           console.log("Erro ao verificar status:", err);
         }
-      }, 5000);
+      }, 20000);
 
     } else {
       qrWindow.document.write(`<p>${result.error || "Erro ao gerar QR Code."}</p>`);
