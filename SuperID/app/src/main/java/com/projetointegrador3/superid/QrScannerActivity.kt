@@ -68,6 +68,9 @@ class BarcodeAnalyzer(
     private val scanner = BarcodeScanning.getClient()
     private var isProcessing = false
 
+    // Set para guardar tokens já verificados e evitar chamadas repetidas
+    private val tokensVerificados = mutableSetOf<String>()
+
     @SuppressLint("UnsafeOptInUsageError")
     override fun analyze(imageProxy: ImageProxy) {
         if (isProcessing) {
@@ -85,6 +88,14 @@ class BarcodeAnalyzer(
                     for (barcode in barcodes) {
                         val value = barcode.rawValue
                         if (value != null) {
+                            // Verifica se token já foi processado
+                            if (tokensVerificados.contains(value)) {
+                                // Já processado, ignora
+                                continue
+                            } else {
+                                tokensVerificados.add(value)
+                            }
+
                             verificarLoginStatus(value) { response ->
                                 if (response.trim().startsWith("{")) {
                                     try {
@@ -109,7 +120,6 @@ class BarcodeAnalyzer(
                                         onResult(value, "erro")
                                     }
                                 } else {
-                                    // Caso response não seja JSON válido, trate como erro
                                     Log.e("SuperID", "Resposta inesperada (não é JSON): $response")
                                     onResult(value, "erro")
                                 }
@@ -130,7 +140,6 @@ class BarcodeAnalyzer(
         }
     }
 }
-
 
 @Composable
 fun CameraPreview(
@@ -284,8 +293,9 @@ fun verificarLoginStatus(loginToken: String, onResult: (String) -> Unit) {
             val response = inputStream.bufferedReader().use { it.readText() }
             onResult(response)
         } catch (e: Exception) {
-            e.printStackTrace()
-            onResult("Erro: ${e.message}")
+            val errorMsg = "Erro ao conectar: ${e.javaClass.simpleName} - ${e.message}"
+            Log.e("verificarLoginStatus", errorMsg, e)
+            onResult(errorMsg)
         }
     }.start()
 }
