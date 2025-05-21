@@ -307,7 +307,9 @@ fun confirmarLoginToken(token: String, userUid: String) {
     val data = hashMapOf(
         "uid" to userUid,
         "status" to "confirmado",
-        "timestamp" to FieldValue.serverTimestamp()
+        "timestamp" to FieldValue.serverTimestamp(),
+        "attempts" to 1
+        // atualizar attempts para 0
     )
 
     docRef.set(data, SetOptions.merge())
