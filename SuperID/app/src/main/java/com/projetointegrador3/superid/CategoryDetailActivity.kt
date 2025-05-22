@@ -81,8 +81,10 @@ data class Senha(
     val id: String,
     val usuario: String?,
     val descricao: String?,
-    val senhaCriptografada: String?
+    val senhaCriptografada: String?,
+    val url: String? = null
 )
+
 
 fun loadSenhas(
     context: Context,
@@ -104,7 +106,8 @@ fun loadSenhas(
                     id = doc.id,
                     usuario = doc.getString("usuario"),
                     descricao = doc.getString("descricao"),
-                    senhaCriptografada = doc.getString("senha")
+                    senhaCriptografada = doc.getString("senha"),
+                    url = doc.getString("url") // Adiciona aqui
                 )
             }
             onResult(lista)
@@ -112,37 +115,70 @@ fun loadSenhas(
 }
 
 fun saveSenha(
-    context: Context,
-    categoryName: String,
-    usuario: String?,
-    descricao: String?,
-    senha: String,
-    accessToken: String,
-    onComplete: () -> Unit
+context: Context,
+categoryName: String,
+usuario: String?,
+descricao: String?,
+senha: String,
+accessToken: String,
+url: String?, // Novo parâmetro
+onComplete: () -> Unit
 ) {
     val db = FirebaseFirestore.getInstance()
     val user = FirebaseAuth.getInstance().currentUser ?: return
 
-    val novaSenha = hashMapOf(
-        "usuario" to usuario,
-        "descricao" to descricao,
-        "senha" to senha,
-        "AccessToken" to accessToken
-    )
+    // Verifica se é Sites Web e se a URL já foi usada
+    if (categoryName == "Sites Web" && !url.isNullOrEmpty()) {
+        val senhaRef = db.collection("usuarios")
+            .document(user.uid)
+            .collection("categorias")
+            .document(categoryName)
+            .collection(categoryName)
 
-    db.collection("usuarios")
-        .document(user.uid)
-        .collection("categorias")
-        .document(categoryName)
-        .collection(categoryName)
-        .add(novaSenha)
-        .addOnSuccessListener {
-            Toast.makeText(context, "Senha adicionada com sucesso!", Toast.LENGTH_SHORT).show()
-            onComplete()
-        }
-        .addOnFailureListener { e ->
-            Toast.makeText(context, "Erro ao salvar: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
+        senhaRef.whereEqualTo("url", url)
+            .get()
+            .addOnSuccessListener { result ->
+                if (!result.isEmpty) {
+                    Toast.makeText(context, "Já existe uma senha cadastrada para essa URL.", Toast.LENGTH_SHORT).show()
+                } else {
+                    val novaSenha = hashMapOf(
+                        "usuario" to usuario,
+                        "descricao" to descricao,
+                        "senha" to senha,
+                        "AccessToken" to accessToken,
+                        "url" to url
+                    )
+                    senhaRef.add(novaSenha)
+                        .addOnSuccessListener {
+                            Toast.makeText(context, "Senha adicionada com sucesso!", Toast.LENGTH_SHORT).show()
+                            onComplete()
+                        }
+                        .addOnFailureListener { e ->
+                            Toast.makeText(context, "Erro ao salvar: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                }
+            }
+    } else {
+        val novaSenha = hashMapOf(
+            "usuario" to usuario,
+            "descricao" to descricao,
+            "senha" to senha,
+            "AccessToken" to accessToken
+        )
+        db.collection("usuarios")
+            .document(user.uid)
+            .collection("categorias")
+            .document(categoryName)
+            .collection(categoryName)
+            .add(novaSenha)
+            .addOnSuccessListener {
+                Toast.makeText(context, "Senha adicionada com sucesso!", Toast.LENGTH_SHORT).show()
+                onComplete()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(context, "Erro ao salvar: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
 }
 
 object EncryptionUtils {
@@ -227,6 +263,7 @@ fun updateSenha(
     novoUsuario: String?,
     novaDescricao: String?,
     accessToken: String,
+    novaUrl: String?,
     onComplete: () -> Unit
 ) {
     val db = FirebaseFirestore.getInstance()
@@ -238,6 +275,10 @@ fun updateSenha(
         "senha" to novaSenhaCriptografada,
         "acessToken" to accessToken
     )
+
+    if (categoryName == "Sites Web") {
+        senhaAtualizada["url"] = novaUrl
+    }
 
     db.collection("usuarios")
         .document(user.uid)
@@ -448,14 +489,15 @@ fun CategoryDetailScreen(categoryName: String) {
         AddSenhaDialog(
             categoryName = categoryName,
             onDismiss = { showAddSenhaDialog.value = false },
-            onSave = { usuario, descricao, senha, accessToken ->
-                saveSenha(context, categoryName, usuario, descricao, senha, accessToken) {
+            onSave = { usuario, descricao, senha, accessToken, url ->
+                saveSenha(context, categoryName, usuario, descricao, senha, accessToken, url) {
                     showAddSenhaDialog.value = false
                     loadSenhas(context, categoryName) { senhas ->
                         senhasState.value = senhas
                     }
                 }
             }
+
         )
     }
 
@@ -465,12 +507,10 @@ fun CategoryDetailScreen(categoryName: String) {
             currentUsuario = senha.usuario,
             currentDescricao = senha.descricao,
             currentSenhaCriptografada = senha.senhaCriptografada ?: "",
+            currentUrl = senha.url,
             onDismiss = { senhaParaEditar.value = null },
-            onSave = { novoUsuario, novaDescricao, novaSenhaCriptografada, acessToken ->
-                updateSenha(
-                    context, categoryName, senha,
-                    novaSenhaCriptografada, novoUsuario, novaDescricao, accessToken
-                ) {
+            onSave = { novoUsuario, novaDescricao, novaSenhaCriptografada, acessToken, novaUrl ->
+                updateSenha(context, categoryName, senha, novaSenhaCriptografada, novoUsuario, novaDescricao, acessToken, novaUrl) {
                     senhaParaEditar.value = null
                     loadSenhas(context, categoryName) { senhas ->
                         senhasState.value = senhas
@@ -478,6 +518,7 @@ fun CategoryDetailScreen(categoryName: String) {
                 }
             }
         )
+
     }
 
     if (showDeleteConfirmationDialog.value) {
@@ -571,14 +612,14 @@ fun CategoryDetailScreen(categoryName: String) {
 fun AddSenhaDialog(
     categoryName: String,
     onDismiss: () -> Unit,
-    onSave: (String?, String?, String, String) -> Unit
+    onSave: (String?, String?, String, String, String?) -> Unit // + URL opcional
 ) {
     var usuario by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
     var senha by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf("") }
     val secretKey = remember { EncryptionUtils.generateFixedKey() }
     var accessToken by remember { mutableStateOf(EncryptionUtils.generateAccessToken()) }
-
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -586,46 +627,38 @@ fun AddSenhaDialog(
         title = { Text("Adicionar Senha") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextField(
-                    value = usuario,
-                    onValueChange = { usuario = it },
-                    label = { Text("Usuário (opcional)") }
-                )
-                TextField(
-                    value = descricao,
-                    onValueChange = { descricao = it },
-                    label = { Text("Descrição (opcional)") }
-                )
-                TextField(
-                    value = senha,
-                    onValueChange = { senha = it },
-                    label = { Text("Senha") }
-                )
+                if (categoryName == "Sites Web") {
+                    TextField(
+                        value = url,
+                        onValueChange = { url = it },
+                        label = { Text("URL") },
+                        singleLine = true
+                    )
+                }
+                TextField(value = usuario, onValueChange = { usuario = it }, label = { Text("Usuário (opcional)") })
+                TextField(value = descricao, onValueChange = { descricao = it }, label = { Text("Descrição (opcional)") })
+                TextField(value = senha, onValueChange = { senha = it }, label = { Text("Senha") })
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = {
-                    val encryptedSenha = EncryptionUtils.encrypt(senha, secretKey)
-
-                    if (encryptedSenha.isNotBlank()) {
-                        onSave(
-                            usuario.takeIf { it.isNotBlank() },
-                            descricao.takeIf { it.isNotBlank() },
-                            encryptedSenha,
-                            accessToken
-                        )
-                    }
+            TextButton(onClick = {
+                val encryptedSenha = EncryptionUtils.encrypt(senha, secretKey)
+                if (encryptedSenha.isNotBlank()) {
+                    onSave(
+                        usuario.takeIf { it.isNotBlank() },
+                        descricao.takeIf { it.isNotBlank() },
+                        encryptedSenha,
+                        accessToken,
+                        if (categoryName == "Sites Web") url.trim().takeIf { it.isNotBlank() } else null
+                    )
                 }
-            ) {
-                Text(text ="Salvar",
-                    color = MaterialTheme.colorScheme.onBackground)
+            }) {
+                Text("Salvar", color = MaterialTheme.colorScheme.onBackground)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text ="Cancelar",
-                    color = MaterialTheme.colorScheme.onBackground)
+                Text("Cancelar", color = MaterialTheme.colorScheme.onBackground)
             }
         }
     )
@@ -638,21 +671,25 @@ fun EditSenhaDialog(
     currentUsuario: String?,
     currentDescricao: String?,
     currentSenhaCriptografada: String,
+    currentUrl: String?,
     onDismiss: () -> Unit,
-    onSave: (String?, String?, String, String) -> Unit
+    onSave: (String?, String?, String, String, String?) -> Unit
 ) {
     var usuario by remember { mutableStateOf(currentUsuario ?: "") }
     var descricao by remember { mutableStateOf(currentDescricao ?: "") }
-    var accessToken by remember { mutableStateOf(EncryptionUtils.generateAccessToken()) }
-    val decryptedSenha = try {
-        EncryptionUtils.decrypt(currentSenhaCriptografada, EncryptionUtils.generateFixedKey())
-    } catch (e: Exception) {
-        ""
-    }
-    var senha by remember { mutableStateOf(decryptedSenha) }
+    var senha by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf(currentUrl ?: "") }
     var senhaVisivel by remember { mutableStateOf(false) }
-
+    var accessToken by remember { mutableStateOf(EncryptionUtils.generateAccessToken()) }
     val secretKey = remember { EncryptionUtils.generateFixedKey() }
+
+    LaunchedEffect(currentSenhaCriptografada) {
+        senha = try {
+            EncryptionUtils.decrypt(currentSenhaCriptografada, secretKey)
+        } catch (e: Exception) {
+            ""
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -660,29 +697,20 @@ fun EditSenhaDialog(
         title = { Text("Editar Senha") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextField(
-                    value = usuario,
-                    onValueChange = { usuario = it },
-                    label = { Text("Usuário (opcional)") }
-                )
-                TextField(
-                    value = descricao,
-                    onValueChange = { descricao = it },
-                    label = { Text("Descrição (opcional)") }
-                )
+                if (categoryName == "Sites Web") {
+                    TextField(value = url, onValueChange = { url = it }, label = { Text("URL") }, singleLine = true)
+                }
+                TextField(value = usuario, onValueChange = { usuario = it }, label = { Text("Usuário (opcional)") })
+                TextField(value = descricao, onValueChange = { descricao = it }, label = { Text("Descrição (opcional)") })
                 TextField(
                     value = senha,
                     onValueChange = { senha = it },
                     label = { Text("Senha") },
                     singleLine = true,
-                    visualTransformation = if (senhaVisivel)
-                        VisualTransformation.None
-                    else
-                        PasswordVisualTransformation(),
+                    visualTransformation = if (senhaVisivel) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         TextButton(onClick = { senhaVisivel = !senhaVisivel }) {
-                            Text( text = if (senhaVisivel) "Ocultar" else "Mostrar",
-                                color = MaterialTheme.colorScheme.onBackground)
+                            Text(if (senhaVisivel) "Ocultar" else "Mostrar")
                         }
                     }
                 )
@@ -695,22 +723,21 @@ fun EditSenhaDialog(
                     usuario.takeIf { it.isNotBlank() },
                     descricao.takeIf { it.isNotBlank() },
                     senhaCriptografada,
-                    accessToken
+                    accessToken,
+                    if (categoryName == "Sites Web") url.trim().takeIf { it.isNotBlank() } else null
                 )
             }) {
-                Text(
-                    text =  "Salvar",
-                    color = MaterialTheme.colorScheme.onBackground)
+                Text("Salvar")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "Cancelar",
-                    color = MaterialTheme.colorScheme.onBackground)
+                Text("Cancelar")
             }
         }
     )
 }
+
 
 //DEFINIÇÃO DOS CARDS DE SENHA
 @Composable
@@ -732,6 +759,15 @@ fun SenhaCard(
             .padding(vertical = 8.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
+            senha.url?.let {
+                Text(
+                    text = "URL: $it",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.primary,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+            }
+
             Text(
                 text = senha.usuario ?: "-",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -750,10 +786,7 @@ fun SenhaCard(
 
             Text(
                 text = "Senha: ${
-                    if (showPassword)
-                        decryptedSenha
-                    else
-                        "•".repeat(decryptedSenha.length.coerceAtMost(16))
+                    if (showPassword) decryptedSenha else "•".repeat(decryptedSenha.length.coerceAtMost(16))
                 }",
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurface
@@ -772,28 +805,18 @@ fun SenhaCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
-                horizontalArrangement = Arrangement.End,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
                 IconButton(onClick = onEditar) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Editar",
-                        tint = colors.onPrimary
-                    )
+                    Icon(Icons.Default.Edit, contentDescription = "Editar", tint = colors.onPrimary)
                 }
                 IconButton(onClick = onExcluir) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Excluir",
-                        tint = Color.Red
-                    )
+                    Icon(Icons.Default.Delete, contentDescription = "Excluir", tint = Color.Red)
                 }
             }
         }
     }
 }
+
 
 @Composable
 @Preview
