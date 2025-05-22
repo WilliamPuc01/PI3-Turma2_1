@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 
 
 val BotaoDourado = Color(0xFFDAAA1A)
-
+val Branco = Color.White
 
 // Tema Claro
 val LightPrimary = BotaoDourado

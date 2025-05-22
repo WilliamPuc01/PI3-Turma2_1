@@ -13,6 +13,7 @@ firebaseAuthKtx = "23.2.0"
 navigationCompose = "2.8.9"
 animationCoreLint = "1.8.1"
 camerax = "1.4.1"
+cameraCore = "1.4.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -40,6 +41,7 @@ androidx-camera-camera2 = { group="androidx.camera", name="camera-camera2", vers
 androidx-camera-lifecycle ={ group="androidx.camera", name="camera-lifecycle", version.ref="camerax" }
 androidx-camera-view = { group="androidx.camera", name="camera-view", version.ref="camerax" }
 androidx-camera-extensions = { group="androidx.camera", name="camera-extensions", version.ref="camerax" }
+camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraCore" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
