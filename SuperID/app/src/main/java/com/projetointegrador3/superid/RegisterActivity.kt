@@ -110,6 +110,7 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var showVerificationDialog by remember { mutableStateOf(false) }
@@ -188,19 +189,49 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                     }
                 }
             )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = { Text("Confirmar Senha", color = colors.onSurface) },
+                modifier = Modifier.fillMaxWidth().height(60.dp),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true,
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    val icon = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                    val description = if (passwordVisible) "Ocultar senha" else "Mostrar senha"
+
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = description,
+                            tint = colors.onSurface
+                        )
+                    }
+                }
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
 
             Button(
                 onClick = {
-                    createAccount(name, email, password, context) { result ->
-                        message = result
-                        currentUser = Firebase.auth
-                        if (result.contains("Verifique seu e-mail")) {
-                            showVerificationDialog = true
+                    if (password != confirmPassword) {
+                        message = "As senhas não coincidem."
+                    } else if (name.isBlank() || email.isBlank() || password.isBlank()) {
+                        message = "Preencha todos os campos."
+                    } else {
+                        createAccount(name, email, password, context) { result ->
+                            message = result
+                            currentUser = Firebase.auth
+                            if (result.contains("Verifique seu e-mail")) {
+                                showVerificationDialog = true
+                            }
                         }
                     }
-                },
+                }
+                ,
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(24.dp)
             ) {
@@ -231,7 +262,7 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
 
         if (showVerificationDialog) {
             AlertDialog(
-                onDismissRequest = { showVerificationDialog = false },
+                onDismissRequest = { },
                 confirmButton = {
                     Button(onClick = {
                         currentUser?.currentUser?.reload()?.addOnCompleteListener { task ->
@@ -249,7 +280,7 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                             }
                         }
                     }) {
-                        Text("Verificado", color = Color.White)
+                        Text("Verificado", color = Color.Black)
                     }
                 },
                 dismissButton = {
