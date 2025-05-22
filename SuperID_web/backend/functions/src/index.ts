@@ -8,7 +8,7 @@ admin.initializeApp();
 const db = admin.firestore();
 const corsHandler = cors({origin: true});
 
-// ===== Função 1: Geração do QR Code =====
+// ===== Função 1: Geração do QR Code com site incluído =====
 
 export const performAuth = functions.https.onRequest((req, res) => {
   corsHandler(req, res, async () => {
@@ -31,9 +31,7 @@ export const performAuth = functions.https.onRequest((req, res) => {
         });
       }
 
-      const partnerDoc = await db.collection("partners")
-        .doc(siteUrl)
-        .get();
+      const partnerDoc = await db.collection("partners").doc(siteUrl).get();
 
       if (!partnerDoc.exists || partnerDoc.data()?.apiKey !== apiKey) {
         return res.status(401).json({
@@ -41,11 +39,13 @@ export const performAuth = functions.https.onRequest((req, res) => {
         });
       }
 
-      const token = uuidv4().replace(/-/g, "") + uuidv4().replace(/-/g, "");
+      const token =
+        uuidv4().replace(/-/g, "") + uuidv4().replace(/-/g, "");
 
       await db.collection("login").doc(token).set({
         apiKey,
         loginToken: token,
+        site: siteUrl, // <-- campo adicionado aqui
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         attempts: 0,
       });
@@ -99,7 +99,9 @@ export const getLoginStatus = functions.https.onRequest((req, res) => {
         return res.status(200).json({
           status: "confirmado",
           uid: data.uid,
+          accessToken: data.accessToken || null,
           loginTime: data.timestamp,
+          site: data.site || null,
         });
       }
 
