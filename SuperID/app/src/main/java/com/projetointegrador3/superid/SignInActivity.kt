@@ -2,7 +2,6 @@
 
 package com.projetointegrador3.superid
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -19,24 +18,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,17 +40,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.google.firebase.functions.functions
 import com.projetointegrador3.superid.ui.theme.SuperIDTheme
 
 
@@ -64,7 +62,7 @@ class SignInActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SuperIDTheme {
-                LoginScreenPreview()
+                LoginScreen()
             }
         }
     }
@@ -98,38 +96,33 @@ fun login(email: String, password:String, context: android.content.Context, onRe
 }
 
 // Função para enviar email para redefinir senha
-fun sendPasswordReset(email: String, onResult: (String) -> Unit) {
-    val auth = Firebase.auth
+fun sendPasswordReset(email: String, onResultado: (String) -> Unit) {
+    val functions = Firebase.functions("southamerica-east1")
 
-    // Tentativa de login com senha inválida só pra puxar o user
-    auth.signInWithEmailAndPassword(email, "qualquerCoisa")
-        .addOnCompleteListener { task ->
-            val exception = task.exception
-            val user = auth.currentUser
+    functions
+        .getHttpsCallable("checkEmailVerification")
+        .call(hashMapOf<String, Any>("email" to email))
+        .addOnSuccessListener { result ->
+            val data = result.data as? Map<*, *>
+            val isVerified = data?.get("verified") as? Boolean ?: false
 
-            if (task.isSuccessful || exception?.message?.contains("The password is invalid") == true) {
-                // Verifica se o email está verificado
-                if (user != null && user.isEmailVerified) {
-                    auth.sendPasswordResetEmail(email)
-                        .addOnCompleteListener { resetTask ->
-                            if (resetTask.isSuccessful) {
-                                onResult("E-mail de redefinição enviado com sucesso.")
-                            } else {
-                                onResult("Erro ao enviar e-mail.")
-                            }
+            if (isVerified) {
+                Firebase.auth.sendPasswordResetEmail(email)
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            onResultado("E-mail de redefinição enviado com sucesso.")
+                        } else {
+                            onResultado("Erro ao enviar o e-mail: ${task.exception?.message}")
                         }
-                }
+                    }
             } else {
-                val errorMessage = when ((exception as? com.google.firebase.auth.FirebaseAuthException)?.errorCode) {
-                    "ERROR_USER_NOT_FOUND" -> "Usuário não encontrado."
-                    "ERROR_INVALID_EMAIL" -> "E-mail inválido."
-                    else -> "Esse e-mail ainda não foi verificado."
-                }
-                onResult(errorMessage)
+                onResultado("Este e-mail ainda não foi verificado.")
             }
         }
+        .addOnFailureListener { exception ->
+            onResultado("Erro ao verificar e-mail: ${exception.message}")
+        }
 }
-
 
 // Alert Dialog para abrir quando clicar em "Esqueci minha senha"
 @Composable
@@ -138,39 +131,44 @@ fun ForgotPasswordDialog(
     onSend: (String) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     AlertDialog(
-        onDismissRequest = { onDismiss() },
-        title = { Text("Redefinir senha") },
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = "Redefinir Senha")
+        },
         text = {
             Column {
-                Text("Digite seu e-mail para receber o link de redefinição.")
+                Text("Digite seu e-mail para receber um link de redefinição de senha.")
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("E-mail") }
+                    label = { Text("E-mail") },
+                    singleLine = true
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                onSend(email)
-                onDismiss()
-            }) {
+            TextButton(
+                onClick = {
+                    val cleanEmail = email.trim().lowercase()
+                    onSend(cleanEmail)      // Usa o callback passado
+                    onDismiss()
+                },
+                enabled = email.isNotEmpty()
+            ) {
                 Text("Enviar")
             }
         },
         dismissButton = {
-            TextButton(onClick = { onDismiss() }) {
+            TextButton(onClick = onDismiss) {
                 Text("Cancelar")
             }
         }
     )
 }
-
-
-
 
 @Composable
 fun LoginScreen(modifier: Modifier = Modifier.fillMaxSize()) {

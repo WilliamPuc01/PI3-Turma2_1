@@ -83,4 +83,7 @@ dependencies {
 
     // ML Kit
     implementation ("com.google.mlkit:barcode-scanning:17.2.0")
+
+    // Firebase functions
+    implementation ("com.google.firebase:firebase-functions-ktx")
 }

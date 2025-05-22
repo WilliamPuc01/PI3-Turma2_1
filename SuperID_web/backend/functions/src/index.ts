@@ -3,6 +3,8 @@ import * as admin from "firebase-admin";
 import * as QRCode from "qrcode";
 import {v4 as uuidv4} from "uuid";
 import cors from "cors";
+import {onCall} from "firebase-functions/https";
+import {getAuth} from "firebase-admin/auth";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -92,3 +94,23 @@ export const getLoginStatus = functions.https.onRequest((req, res) => {
     });
   });
 });
+
+// Checar se o email foi verificado
+export const checkEmailVerification = onCall(
+  {region: "southamerica-east1"},
+  async (request) => {
+    const email = (request.data?.email || "").trim().toLowerCase();
+
+    if (!email) {
+      throw new Error("E-mail não fornecido.");
+    }
+
+    try {
+      const userRecord = await getAuth().getUserByEmail(email);
+      return {verified: userRecord.emailVerified};
+    } catch (error: any) {
+      functions.logger.error("Erro ao buscar usuário:", error);
+      throw new Error(`Erro ao buscar usuário: ${error.message}`);
+    }
+  }
+);
