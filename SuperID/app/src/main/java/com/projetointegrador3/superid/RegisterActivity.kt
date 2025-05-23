@@ -2,6 +2,7 @@ package com.projetointegrador3.superid
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -88,6 +89,7 @@ fun createAccount(name:String, email: String, password:String, context: android.
                     else -> "Erro ao criar conta: \${exception?.localizedMessage}"
                 }
                 onResult(errorMessage)
+
             }
         }
 }
@@ -238,9 +240,10 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                 Text(text = "Criar Conta", color = colors.onPrimary)
             }
 
-            if (message.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(text = message, color = colors.onSurface)
+            LaunchedEffect(message) {
+                if (message.isNotEmpty()) {
+                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))

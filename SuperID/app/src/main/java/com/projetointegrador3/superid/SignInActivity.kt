@@ -1,5 +1,3 @@
-@file:Suppress("NAME_SHADOWING")
-
 package com.projetointegrador3.superid
 
 import android.content.Intent
@@ -34,6 +32,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,8 +85,8 @@ fun login(email: String, password:String, context: android.content.Context, onRe
             } else {
                 val exception = task.exception
                 val errorMessage = when ((exception as? com.google.firebase.auth.FirebaseAuthException)?.errorCode) {
-                    "ERROR_INVALID_EMAIL" -> "E-mail inválido."
-                    "ERROR_WRONG_PASSWORD" -> "Senha incorreta."
+                    "ERROR_INVALID_EMAIL" -> "O e-mail inserido é inválido."
+                    "ERROR_WRONG_PASSWORD" -> "Senha incorreta. Tente novamente."
                     else -> "Erro ao fazer login"
                 }
                 onResult(errorMessage)
@@ -307,9 +306,10 @@ fun LoginScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                 }
 
                 // Mensagem de erro ou sucesso
-                if (message.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = message, color = MaterialTheme.colorScheme.onSurface)
+                LaunchedEffect(message) {
+                    if (message.isNotEmpty()) {
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))

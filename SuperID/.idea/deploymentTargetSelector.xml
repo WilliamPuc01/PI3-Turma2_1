@@ -4,19 +4,6 @@
     <selectionStates>
       <SelectionState runConfigName="SuperID">
         <option name="selectionMode" value="DROPDOWN" />
-<<<<<<< HEAD
-=======
-
-<DropdownSelection timestamp="2025-05-22T17:32:50.694536300Z">
-
-          <Target type="DEFAULT_BOOT">
-            <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\Pichau\.android\avd\Medium_Phone.avd" />
-            </handle>
-          </Target>
-        </DropdownSelection>
-        <DialogSelection />
->>>>>>> f78bbc83a8786fd23883533a21d0ef4df3528bd1
       </SelectionState>
     </selectionStates>
   </component>
