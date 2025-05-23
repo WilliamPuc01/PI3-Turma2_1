@@ -43,6 +43,20 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.projetointegrador3.superid.permissions.WithPermission
 import com.projetointegrador3.superid.ui.theme.SuperIDTheme
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 
 class MainActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
@@ -91,191 +105,179 @@ fun setPrimeiraVez(context: Context, primeiraVez: Boolean) {
 
 
 @Composable
-fun WelcomeScreen(
-) {
+fun WelcomeScreen() {
     val context = LocalContext.current
-
-    // verifica se já foi aceito os termos de uso
     var introTermos by remember { mutableStateOf(primeiraVez(context)) }
+    var isChecked by remember { mutableStateOf(false) }
+    var showError by remember { mutableStateOf(false) }
 
-    val customColors = darkColorScheme(
-        primary = Color(0xFFD4AF37), // Dourado
-        surface = Color(0xFF121212), // Preto
-        onSurface = Color.White
-    )
+    Box(modifier = Modifier.fillMaxSize()) {
+        BackgroundImage()
 
-    MaterialTheme(colorScheme = customColors) {
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Imagem de fundo
-            Image(
-                painter = painterResource(R.drawable.fundo),
-                contentDescription = "Fundo do app",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .alpha(1.0f)
-            )
+        if (introTermos) {
+            AlertDialog(
+                onDismissRequest = { },
+                properties = DialogProperties(
+                    dismissOnClickOutside = false,
+                    dismissOnBackPress = false
+                ),
+                title = {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.superid_removebg),
+                            contentDescription = "Logo SuperID",
+                            modifier = Modifier
+                                .height(100.dp)
+                                .padding(bottom = 8.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Bem-Vindo ao SuperID",
+                            fontSize = 24.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
 
-            // pop up de introdução
-            var isChecked by remember { mutableStateOf(false) }
-            var showError by remember { mutableStateOf(false) }
+                        Text(
+                            text = "Aqui você tem o armazenamento seguro de senhas para logar nos nossos sites parceiros.",
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
 
-            if (introTermos) {
-                AlertDialog(
-                    onDismissRequest = {
-                    },
-                    properties = DialogProperties(
-                        dismissOnClickOutside = false,
-                        dismissOnBackPress = false
-                    ),
-                    title = {
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Bem-Vindo ao SuperID",
-                                fontSize = 24.sp,
-                                color = Color.White
+                        Image(
+                            painter = painterResource(R.drawable.superid_exemplo),
+                            contentDescription = "Salve e categorize suas senhas",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(300.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "Salve e categorize suas senhas",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        val annotatedText = buildAnnotatedString {
+                            val termosUrl = "https://firebasestorage.googleapis.com/v0/b/superid-760b7.firebasestorage.app/o/SuperID-Termos%20de%20Uso.pdf?alt=media&token=3a7cf7a4-0663-47d3-b114-84bda9cccde1"
+
+                            pushStringAnnotation(
+                                tag = "URL",
+                                annotation = termosUrl
                             )
-                        }
-                    },
-                    text = {
-                        Column(
-
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "Aqui você tem o armazenamento seguro de senhas e pode logar nos nossos sites parceiros",
-                                fontSize = 16.sp,
-                                color = Color.White,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center // Alinhar texto no centro
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            Image(
-                                painter = painterResource(R.drawable.superid_exemplo),
-                                contentDescription = "Salve e categorize suas senhas!",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(400.dp),
-                                contentScale = ContentScale.Fit
-                            )
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            Text(
-                                text = "salve e categorize suas senhas",
-                                fontSize = 14.sp,
-                                color = Color.White,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(20.dp))
-
-
-                            val annotatedText = buildAnnotatedString {
-                                val termosUrl = "https://firebasestorage.googleapis.com/v0/b/superid-760b7.firebasestorage.app/o/SuperID-Termos%20de%20Uso.pdf?alt=media&token=3a7cf7a4-0663-47d3-b114-84bda9cccde1"
-
-                                pushStringAnnotation(
-                                    tag = "URL",
-                                    annotation = termosUrl
+                            withStyle(
+                                style = SpanStyle(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
                                 )
-                                withStyle(
-                                    style = SpanStyle(
-                                        color = Color(0xFF64B5F6), // azul claro para link
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                ) {
-                                    append("TERMOS DE USO")
-                                }
-                                pop()
-                            }
-
-                            val uriHandler = LocalContext.current
-
-                            BasicText(
-                                text = annotatedText,
-                                modifier = Modifier
-                                    .clickable {
-                                        annotatedText.getStringAnnotations(tag = "URL", start = 0, end = annotatedText.length)
-                                            .firstOrNull()?.let { annotation ->
-                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(annotation.item))
-                                                uriHandler.startActivity(intent)
-                                            }
-                                    }
-                                    .padding(8.dp),
-                                style = LocalTextStyle.current.copy(
-                                    textAlign = TextAlign.Center,
-                                    fontSize = 14.sp
-                                )
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
                             ) {
-                                Checkbox(
-                                    checked = isChecked,
-                                    onCheckedChange = {
-                                        isChecked = it
-                                        if (it) showError = false
-                                    },
-                                    colors = CheckboxDefaults.colors(
-                                        checkedColor = Color(0xFFD4AF37),
-                                        uncheckedColor = Color.White,
-                                        checkmarkColor = Color.Black
-                                    )
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Li e aceito os termos de uso",
-                                    color = Color.White
-                                )
+                                append("TERMOS DE USO")
                             }
+                            pop()
+                        }
 
-                            if (showError) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Aceite os termos de uso antes de prosseguir",
-                                    color = Color.Red,
-                                    fontSize = 14.sp,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                )
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                if (isChecked) {
-                                    introTermos = false
-                                    setPrimeiraVez(context, false)
-                                    val intent = Intent(context, RegisterActivity::class.java)
-                                    context.startActivity(intent)
-                                    if (context is ComponentActivity) {
-                                        context.finish()
-                                    }
-                                } else {
-                                    showError = true
+                        BasicText(
+                            text = annotatedText,
+                            modifier = Modifier
+                                .clickable {
+                                    annotatedText.getStringAnnotations(tag = "URL", start = 0, end = annotatedText.length)
+                                        .firstOrNull()?.let { annotation ->
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(annotation.item))
+                                            context.startActivity(intent)
+                                        }
                                 }
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFD4AF37),
-                                contentColor = Color.Black
+                                .padding(8.dp),
+                            style = LocalTextStyle.current.copy(
+                                textAlign = TextAlign.Center,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+
+
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
                         ) {
-                            Text("Continuar")
+                            Checkbox(
+                                checked = isChecked,
+                                onCheckedChange = {
+                                    isChecked = it
+                                    if (it) showError = false
+                                },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = MaterialTheme.colorScheme.primary,
+                                    uncheckedColor = MaterialTheme.colorScheme.onSurface,
+                                    checkmarkColor = MaterialTheme.colorScheme.surface
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Li e aceito os termos de uso",
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
-                    },
-                    containerColor = Color(0xFF2C2C2C),
-                    titleContentColor = Color.White,
-                    textContentColor = Color.White
-                )
-            }
+
+                        if (showError) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Aceite os termos de uso antes de prosseguir",
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (isChecked) {
+                                introTermos = false
+                                setPrimeiraVez(context, false)
+                                val intent = Intent(context, RegisterActivity::class.java)
+                                context.startActivity(intent)
+                                if (context is ComponentActivity) {
+                                    context.finish()
+                                }
+                            } else {
+                                // erro ao não aceitar termos
+                                showError = true
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Text("Continuar", color = MaterialTheme.colorScheme.onPrimary)
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.surface,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                textContentColor = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }
