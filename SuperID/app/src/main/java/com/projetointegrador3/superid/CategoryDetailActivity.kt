@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,11 +39,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.projetointegrador3.superid.ui.theme.SuperIDTheme
+import kotlinx.coroutines.launch
 import java.security.SecureRandom
 import java.util.Base64
 import javax.crypto.Cipher
@@ -300,43 +305,62 @@ fun updateCategoria(
     context: Context,
     categoriaAtual: String,
     novoNome: String,
+    onError: (String) -> Unit,
     onComplete: () -> Unit
 ) {
+    val nomeLimpo = novoNome.trim()
+    if (nomeLimpo.isBlank()) {
+        onError("O nome da categoria não pode estar em branco.")
+        return
+    }
+    if (nomeLimpo == categoriaAtual) {
+        onError("O novo nome deve ser diferente do atual.")
+        return
+    }
+
     val db = FirebaseFirestore.getInstance()
-    val user = FirebaseAuth.getInstance().currentUser ?: return
+    val user = FirebaseAuth.getInstance().currentUser ?: return onError("Usuário não autenticado.")
 
     val userRef = db.collection("usuarios").document(user.uid)
+    val novaCategoriaRef = userRef.collection("categorias").document(nomeLimpo)
     val categoriaRef = userRef.collection("categorias").document(categoriaAtual)
 
-    categoriaRef.get().addOnSuccessListener { document ->
-        if (document.exists()) {
-            val dadosCategoria = document.data ?: return@addOnSuccessListener
+    novaCategoriaRef.get().addOnSuccessListener { existsDoc ->
+        if (existsDoc.exists()) {
+            onError("Já existe uma categoria com esse nome.")
+            return@addOnSuccessListener
+        }
 
-            // Copia os dados para o novo nome
-            userRef.collection("categorias").document(novoNome).set(dadosCategoria)
-                .addOnSuccessListener {
-                    // Agora copia as senhas
-                    categoriaRef.collection(categoriaAtual).get()
-                        .addOnSuccessListener { snapshot ->
-                            val batch = db.batch()
-                            snapshot.documents.forEach { senhaDoc ->
-                                val novaRef = userRef.collection("categorias")
-                                    .document(novoNome)
-                                    .collection(novoNome)
-                                    .document(senhaDoc.id)
-                                batch.set(novaRef, senhaDoc.data ?: return@forEach)
-                            }
+        categoriaRef.get().addOnSuccessListener { document ->
+            if (!document.exists()) {
+                onError("Categoria original não encontrada.")
+                return@addOnSuccessListener
+            }
 
-                            batch.commit().addOnSuccessListener {
-                                // Remove categoria antiga
-                                categoriaRef.delete().addOnSuccessListener {
-                                    onComplete()
-                                    Toast.makeText(context, "Categoria renomeada com sucesso", Toast.LENGTH_SHORT).show()
-                                }
+            val dadosCategoria = document.data ?: emptyMap<String, Any>()
+
+            // Cria nova categoria com dados antigos
+            novaCategoriaRef.set(dadosCategoria).addOnSuccessListener {
+                categoriaRef.collection(categoriaAtual).get()
+                    .addOnSuccessListener { snapshot ->
+                        val batch = db.batch()
+                        snapshot.documents.forEach { senhaDoc ->
+                            val novaRef = novaCategoriaRef.collection(nomeLimpo).document(senhaDoc.id)
+                            batch.set(novaRef, senhaDoc.data ?: return@forEach)
+                        }
+
+                        batch.commit().addOnSuccessListener {
+                            // Apaga a categoria antiga
+                            categoriaRef.delete().addOnSuccessListener {
+                                Toast.makeText(context, "Categoria renomeada com sucesso", Toast.LENGTH_SHORT).show()
+                                onComplete()
                             }
                         }
-                }
+                    }
+            }
         }
+    }.addOnFailureListener {
+        onError("Erro ao acessar o banco de dados.")
     }
 }
 
@@ -365,6 +389,8 @@ fun deleteCategoria(
             }
         }
 }
+
+
 
 @Composable
 fun CategoryDetailScreen(categoryName: String) {
@@ -555,29 +581,56 @@ fun CategoryDetailScreen(categoryName: String) {
     }
     if (showEditCategoryDialog.value) {
         var novoNome by remember { mutableStateOf(categoryName) }
+        var nomeErro by remember { mutableStateOf<String?>(null) }
+        val coroutineScope = rememberCoroutineScope()
+
         AlertDialog(
-            onDismissRequest = { showEditCategoryDialog.value = false },
+            onDismissRequest = {
+                showEditCategoryDialog.value = false
+                nomeErro = null
+            },
             title = { Text("Renomear Categoria") },
             text = {
-                TextField(
-                    value = novoNome,
-                    onValueChange = { novoNome = it },
-                    label = { Text("Novo nome da categoria") }
-                )
+                Column {
+                    TextField(
+                        value = novoNome,
+                        onValueChange = {
+                            novoNome = it
+                            if (it != categoryName && it.isNotBlank()) nomeErro = null
+                        },
+                        label = { Text("Novo nome da categoria") },
+                        isError = nomeErro != null,
+                        singleLine = true
+                    )
+                    AnimatedVisibility(visible = nomeErro != null) {
+                        Text(
+                            text = nomeErro.orEmpty(),
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    updateCategoria(context, categoryName, novoNome) {
-                        (context as? Activity)?.finish()
-                    }
+                    updateCategoria(
+                        context,
+                        categoriaAtual = categoryName,
+                        novoNome = novoNome,
+                        onError = { mensagemErro -> nomeErro = mensagemErro },
+                        onComplete = { (context as? Activity)?.finish() }
+                    )
                     showEditCategoryDialog.value = false
                 }) {
-                    Text("Salvar")
+                    Text("Salvar", color = MaterialTheme.colorScheme.onBackground)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showEditCategoryDialog.value = false }) {
-                    Text("Cancelar")
+                TextButton(onClick = {
+                    showEditCategoryDialog.value = false
+                    nomeErro = null
+                }) {
+                    Text("Cancelar", color = MaterialTheme.colorScheme.onBackground)
                 }
             }
         )
@@ -608,16 +661,19 @@ fun CategoryDetailScreen(categoryName: String) {
 
 
 //dialog para criar uma nova senha na categoria
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddSenhaDialog(
     categoryName: String,
     onDismiss: () -> Unit,
-    onSave: (String?, String?, String, String, String?) -> Unit // + URL opcional
+    onSave: (String?, String?, String, String, String?) -> Unit
 ) {
     var usuario by remember { mutableStateOf("") }
     var descricao by remember { mutableStateOf("") }
     var senha by remember { mutableStateOf("") }
     var url by remember { mutableStateOf("") }
+    var senhaError by remember { mutableStateOf(false) }
+
     val secretKey = remember { EncryptionUtils.generateFixedKey() }
     var accessToken by remember { mutableStateOf(EncryptionUtils.generateAccessToken()) }
 
@@ -635,23 +691,62 @@ fun AddSenhaDialog(
                         singleLine = true
                     )
                 }
-                TextField(value = usuario, onValueChange = { usuario = it }, label = { Text("Usuário (opcional)") })
-                TextField(value = descricao, onValueChange = { descricao = it }, label = { Text("Descrição (opcional)") })
-                TextField(value = senha, onValueChange = { senha = it }, label = { Text("Senha") })
+
+                TextField(
+                    value = usuario,
+                    onValueChange = { usuario = it },
+                    label = { Text("Usuário (opcional)") }
+                )
+
+                TextField(
+                    value = descricao,
+                    onValueChange = { descricao = it },
+                    label = { Text("Descrição (opcional)") }
+                )
+
+                Column {
+                    TextField(
+                        value = senha,
+                        onValueChange = {
+                            senha = it
+                            if (it.isNotBlank()) senhaError = false
+                        },
+                        label = { Text("Senha") },
+                        isError = senhaError,
+                        singleLine = true,
+                        colors = TextFieldDefaults.textFieldColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            focusedIndicatorColor = if (senhaError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            unfocusedIndicatorColor = if (senhaError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            cursorColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+
+                    AnimatedVisibility(visible = senhaError) {
+                        Text(
+                            text = "A senha é obrigatória",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                val encryptedSenha = EncryptionUtils.encrypt(senha, secretKey)
-                if (encryptedSenha.isNotBlank()) {
-                    onSave(
-                        usuario.takeIf { it.isNotBlank() },
-                        descricao.takeIf { it.isNotBlank() },
-                        encryptedSenha,
-                        accessToken,
-                        if (categoryName == "Sites Web") url.trim().takeIf { it.isNotBlank() } else null
-                    )
+                if (senha.isBlank()) {
+                    senhaError = true
+                    return@TextButton
                 }
+
+                val encryptedSenha = EncryptionUtils.encrypt(senha, secretKey)
+                onSave(
+                    usuario.takeIf { it.isNotBlank() },
+                    descricao.takeIf { it.isNotBlank() },
+                    encryptedSenha,
+                    accessToken,
+                    if (categoryName == "Sites Web") url.trim().takeIf { it.isNotBlank() } else null
+                )
             }) {
                 Text("Salvar", color = MaterialTheme.colorScheme.onBackground)
             }
@@ -665,6 +760,7 @@ fun AddSenhaDialog(
 }
 
 //Dialog pra editar uma senha
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditSenhaDialog(
     categoryName: String,
@@ -680,6 +776,8 @@ fun EditSenhaDialog(
     var senha by remember { mutableStateOf("") }
     var url by remember { mutableStateOf(currentUrl ?: "") }
     var senhaVisivel by remember { mutableStateOf(false) }
+    var senhaError by remember { mutableStateOf(false) }
+
     var accessToken by remember { mutableStateOf(EncryptionUtils.generateAccessToken()) }
     val secretKey = remember { EncryptionUtils.generateFixedKey() }
 
@@ -698,26 +796,67 @@ fun EditSenhaDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (categoryName == "Sites Web") {
-                    TextField(value = url, onValueChange = { url = it }, label = { Text("URL") }, singleLine = true)
+                    TextField(
+                        value = url,
+                        onValueChange = { url = it },
+                        label = { Text("URL") },
+                        singleLine = true
+                    )
                 }
-                TextField(value = usuario, onValueChange = { usuario = it }, label = { Text("Usuário (opcional)") })
-                TextField(value = descricao, onValueChange = { descricao = it }, label = { Text("Descrição (opcional)") })
+
                 TextField(
-                    value = senha,
-                    onValueChange = { senha = it },
-                    label = { Text("Senha") },
-                    singleLine = true,
-                    visualTransformation = if (senhaVisivel) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        TextButton(onClick = { senhaVisivel = !senhaVisivel }) {
-                            Text(if (senhaVisivel) "Ocultar" else "Mostrar")
-                        }
-                    }
+                    value = usuario,
+                    onValueChange = { usuario = it },
+                    label = { Text("Usuário (opcional)") }
                 )
+
+                TextField(
+                    value = descricao,
+                    onValueChange = { descricao = it },
+                    label = { Text("Descrição (opcional)") }
+                )
+
+                Column {
+                    TextField(
+                        value = senha,
+                        onValueChange = {
+                            senha = it
+                            if (it.isNotBlank()) senhaError = false
+                        },
+                        label = { Text("Senha") },
+                        isError = senhaError,
+                        singleLine = true,
+                        visualTransformation = if (senhaVisivel) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            TextButton(onClick = { senhaVisivel = !senhaVisivel }) {
+                                Text(if (senhaVisivel) "Ocultar" else "Mostrar")
+                            }
+                        },
+                        colors = TextFieldDefaults.textFieldColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            focusedIndicatorColor = if (senhaError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            unfocusedIndicatorColor = if (senhaError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            cursorColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+
+                    AnimatedVisibility(visible = senhaError) {
+                        Text(
+                            text = "A senha é obrigatória",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
             TextButton(onClick = {
+                if (senha.isBlank()) {
+                    senhaError = true
+                    return@TextButton
+                }
+
                 val senhaCriptografada = EncryptionUtils.encrypt(senha, secretKey)
                 onSave(
                     usuario.takeIf { it.isNotBlank() },
@@ -727,12 +866,12 @@ fun EditSenhaDialog(
                     if (categoryName == "Sites Web") url.trim().takeIf { it.isNotBlank() } else null
                 )
             }) {
-                Text("Salvar")
+                Text("Salvar", color = MaterialTheme.colorScheme.onBackground)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text("Cancelar", color = MaterialTheme.colorScheme.onBackground)
             }
         }
     )
