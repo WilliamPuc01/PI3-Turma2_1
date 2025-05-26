@@ -64,6 +64,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.projetointegrador3.superid.ui.theme.DarkPrimary
 import com.projetointegrador3.superid.ui.theme.LightPrimary
 import com.projetointegrador3.superid.ui.theme.SuperIDTheme
+import com.google.firebase.functions.ktx.functions
+import com.google.firebase.ktx.Firebase
 
 
 class HomeActivity : ComponentActivity() {
@@ -134,8 +136,10 @@ fun HomeScreen() {
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = {
-                        val intent = Intent(context, QrScannerActivity::class.java)
-                        context.startActivity(intent)
+                        verificarEmail(context){
+                            val intent = Intent(context, QrScannerActivity::class.java)
+                            context.startActivity(intent)
+                        }
                     },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = Color.Black
@@ -203,6 +207,31 @@ fun HomeScreen() {
                 }
             }
         }
+    }
+}
+
+fun verificarEmail(context: Context, onAutorizado: () -> Unit) {
+    val user = FirebaseAuth.getInstance().currentUser
+
+    if (user != null) {
+        Firebase.functions("southamerica-east1")
+            .getHttpsCallable("checkEmailVerification")
+            .call(hashMapOf("email" to user.email))
+            .addOnSuccessListener { result ->
+                val data = result.data as? Map<*, *>
+                val isVerified = data?.get("verified") as? Boolean ?: false
+
+                if (isVerified) {
+                    onAutorizado()
+                } else {
+                    Toast.makeText(context, "Você precisa verificar seu e-mail para usar essa funcionalidade.", Toast.LENGTH_LONG).show()
+                }
+            }
+            .addOnFailureListener { exception ->
+                Toast.makeText(context, "Erro ao verificar e-mail: ${exception.message}", Toast.LENGTH_LONG).show()
+            }
+    } else {
+        Toast.makeText(context, "Usuário não autenticado.", Toast.LENGTH_SHORT).show()
     }
 }
 
