@@ -110,6 +110,57 @@ fun WelcomeScreen() {
     var introTermos by remember { mutableStateOf(primeiraVez(context)) }
     var isChecked by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
+    val termosUsoTexto = """   Termos de Uso – Aplicativo SuperID
+Última atualização: Abril de 2025
+Bem-vindo ao aplicativo SuperID. Ao utilizar nossos serviços, você concorda com os
+termos e condições descritos a seguir. Leia com atenção.
+1. Objetivo do Aplicativo
+O SuperID é um aplicativo desenvolvido para o usuário salvar suas senhas de forma
+segura e rápida e facilitar o processo de autenticação segura de usuários em sites
+parceiros por meio de QR Code dinâmico. O app permite que o usuário acesse essas
+plataformas com rapidez, utilizando sua conta cadastrada no SuperID.
+2. Cadastro e Acesso
+• O acesso ao SuperID requer a criação de uma conta com e-mail e senha
+válidos.
+• Os dados de autenticação são armazenados de forma segura utilizando
+tecnologias providas pelo Firebase Authentication.
+• O usuário é responsável por manter a confidencialidade de suas credenciais.
+3. Funcionamento da Autenticação
+• Sites parceiros podem gerar um QR Code temporário via nossa API.
+• O app SuperID escaneia esse QR Code e, caso o usuário esteja autenticado,
+confirma o login no parceiro de forma criptografada.
+• O processo é seguro, sem compartilhamento de senhas com terceiros.
+4. Segurança e Criptografia
+• As senhas armazenadas localmente no app são criptografadas antes de serem
+salvas.
+• O processo de escaneamento e confirmação de QR Code utiliza tokens
+temporários e autenticação por usuário.
+• Os dados de autenticação não são expostos durante nenhuma etapa do
+processo.
+5. Sites Parceiros
+• O login via SuperID só é permitido em sites autorizados e registrados na base
+do aplicativo.
+• Cada parceiro possui uma chave de API única para validar sua identidade.
+•
+6. Privacidade dos Dados
+• O SuperID não compartilha seus dados pessoais com terceiros sem
+consentimento.
+• Informações como UID (identificador único) e timestamp de login são
+compartilhadas apenas com sites parceiros autorizados no momento da
+autenticação.
+7. Responsabilidade do Usuário
+• O uso indevido do aplicativo, como tentativas de autenticar em sistemas não
+autorizados, poderá resultar em bloqueio da conta.
+• O usuário deve manter seu dispositivo protegido contra acesso não autorizado.
+8. Limitação de Responsabilidade
+• O SuperID é um projeto em desenvolvimento e não se responsabiliza por falhas
+de conexão, indisponibilidade temporária ou uso indevido por parte dos
+parceiros.
+9. Alterações nos Termos
+Estes termos podem ser atualizados periodicamente. O uso contínuo do app após
+alterações implica na aceitação dos novos termos. 
+""".trimIndent()
+    var showTermos by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         BackgroundImage()
@@ -177,39 +228,17 @@ fun WelcomeScreen() {
                         )
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        val annotatedText = buildAnnotatedString {
-                            val termosUrl = "https://firebasestorage.googleapis.com/v0/b/superid-760b7.firebasestorage.app/o/SuperID-Termos%20de%20Uso.pdf?alt=media&token=3a7cf7a4-0663-47d3-b114-84bda9cccde1"
-
-                            pushStringAnnotation(
-                                tag = "URL",
-                                annotation = termosUrl
-                            )
-                            withStyle(
-                                style = SpanStyle(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            ) {
-                                append("TERMOS DE USO")
-                            }
-                            pop()
-                        }
-
-                        BasicText(
-                            text = annotatedText,
+                        Text(
+                            text = "TERMOS DE USO",
                             modifier = Modifier
                                 .clickable {
-                                    annotatedText.getStringAnnotations(tag = "URL", start = 0, end = annotatedText.length)
-                                        .firstOrNull()?.let { annotation ->
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(annotation.item))
-                                            context.startActivity(intent)
-                                        }
+                                    showTermos = true
                                 }
                                 .padding(8.dp),
-                            style = LocalTextStyle.current.copy(
-                                textAlign = TextAlign.Center,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurface
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
                             )
                         )
                         Spacer(modifier = Modifier.height(16.dp))
@@ -272,6 +301,40 @@ fun WelcomeScreen() {
                         shape = RoundedCornerShape(24.dp)
                     ) {
                         Text("Continuar", color = MaterialTheme.colorScheme.onPrimary)
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.surface,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                textContentColor = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        if (showTermos) {
+            AlertDialog(
+                onDismissRequest = { showTermos = false },
+                title = {
+                    Text(
+                        text = "Termos de Uso",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp) // Ajuste a altura conforme quiser
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        Text(
+                            text = termosUsoTexto,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Justify
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = { showTermos = false }) {
+                        Text("Fechar")
                     }
                 },
                 containerColor = MaterialTheme.colorScheme.surface,
