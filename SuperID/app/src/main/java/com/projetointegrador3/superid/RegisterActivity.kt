@@ -34,6 +34,7 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.projetointegrador3.superid.ui.theme.SuperIDTheme
+import androidx.compose.animation.AnimatedVisibility
 
 class RegisterActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
@@ -114,6 +115,12 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
+
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+    var confirmPasswordError by remember { mutableStateOf<String?>(null) }
+
     var passwordVisible by remember { mutableStateOf(false) }
     var showVerificationDialog by remember { mutableStateOf(false) }
     var currentUser by remember { mutableStateOf<FirebaseAuth?>(null) }
@@ -147,84 +154,130 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
             Text("Criar Conta", fontSize = 30.sp, color = colors.onBackground)
             Spacer(modifier = Modifier.height(20.dp))
 
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Nome completo", color = colors.onSurface) },
-                modifier = Modifier.fillMaxWidth().height(60.dp),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email", color = colors.onSurface) },
-                modifier = Modifier.fillMaxWidth().height(60.dp),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Senha", color = colors.onSurface) },
-                modifier = Modifier.fillMaxWidth().height(60.dp),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true,
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    val icon =
-                        if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                    val description = if (passwordVisible) "Ocultar senha" else "Mostrar senha"
-
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = description,
-                            tint = colors.onSurface
-                        )
-                    }
+            // Nome
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = {
+                        name = it
+                        if (it.isNotBlank()) nameError = null
+                    },
+                    label = { Text("Nome completo", color = colors.onSurface) },
+                    modifier = Modifier.fillMaxWidth().height(60.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    isError = nameError != null
+                )
+                AnimatedVisibility(nameError != null) {
+                    Text(nameError.orEmpty(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
-            )
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
 
-            OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = { confirmPassword = it },
-                label = { Text("Confirmar Senha", color = colors.onSurface) },
-                modifier = Modifier.fillMaxWidth().height(60.dp),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true,
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    val icon = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                    val description = if (passwordVisible) "Ocultar senha" else "Mostrar senha"
-
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = description,
-                            tint = colors.onSurface
-                        )
-                    }
+            // Email
+            Column {
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = {
+                        email = it
+                        if (it.isNotBlank()) emailError = null
+                    },
+                    label = { Text("Email", color = colors.onSurface) },
+                    modifier = Modifier.fillMaxWidth().height(60.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    isError = emailError != null
+                )
+                AnimatedVisibility(emailError != null) {
+                    Text(emailError.orEmpty(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
-            )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Senha
+            Column {
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = {
+                        password = it
+                        if (it.isNotBlank()) passwordError = null
+                    },
+                    label = { Text("Senha", color = colors.onSurface) },
+                    modifier = Modifier.fillMaxWidth().height(60.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    isError = passwordError != null,
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        val icon = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(icon, contentDescription = null, tint = colors.onSurface)
+                        }
+                    }
+                )
+                AnimatedVisibility(passwordError != null) {
+                    Text(passwordError.orEmpty(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Confirmar senha
+            Column {
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = {
+                        confirmPassword = it
+                        if (it.isNotBlank()) confirmPasswordError = null
+                    },
+                    label = { Text("Confirmar Senha", color = colors.onSurface) },
+                    modifier = Modifier.fillMaxWidth().height(60.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    isError = confirmPasswordError != null,
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        val icon = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(icon, contentDescription = null, tint = colors.onSurface)
+                        }
+                    }
+                )
+                AnimatedVisibility(confirmPasswordError != null) {
+                    Text(confirmPasswordError.orEmpty(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 
             Button(
                 onClick = {
-                    if (password != confirmPassword) {
-                        message = "As senhas não coincidem."
-                    } else if (name.isBlank() || email.isBlank() || password.isBlank()) {
-                        message = "Preencha todos os campos."
-                    } else {
-                        createAccount(name, email, password, context) { result ->
+                    var isValid = true
+
+                    if (name.isBlank()) {
+                        nameError = "Nome obrigatório"
+                        isValid = false
+                    }
+                    if (email.isBlank()) {
+                        emailError = "Email obrigatório"
+                        isValid = false
+                    }
+                    if (password.isBlank()) {
+                        passwordError = "Senha obrigatória"
+                        isValid = false
+                    }
+                    if (confirmPassword.isBlank()) {
+                        confirmPasswordError = "Confirme a senha"
+                        isValid = false
+                    } else if (password != confirmPassword) {
+                        confirmPasswordError = "As senhas não coincidem"
+                        isValid = false
+                    }
+
+                    if (isValid) {
+                        createAccount(name, email.trim(), password, context) { result ->
                             message = result
                             currentUser = Firebase.auth
                             if (result.contains("Verifique seu e-mail")) {
@@ -232,21 +285,14 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                             }
                         }
                     }
-                }
-                ,
+                },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(24.dp)
             ) {
-                Text(text = "Criar Conta", color = colors.onPrimary)
+                Text("Criar Conta", color = colors.onPrimary)
             }
 
-            LaunchedEffect(message) {
-                if (message.isNotEmpty()) {
-                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             TextButton(onClick = {
                 val intent = Intent(context, SignInActivity::class.java)
@@ -256,13 +302,20 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                 Text(
                     "Entrar",
                     color = colors.onSurface,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        textDecoration = TextDecoration.Underline
-                    )
+                    style = MaterialTheme.typography.bodyMedium.copy(textDecoration = TextDecoration.Underline)
                 )
             }
+
+            LaunchedEffect(message) {
+                if (message.isNotEmpty()) {
+                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
         }
 
+        // Diálogo de verificação
         if (showVerificationDialog) {
             AlertDialog(
                 onDismissRequest = { },
@@ -275,8 +328,7 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                                     val intent = Intent(context, SignInActivity::class.java)
                                     context.startActivity(intent)
                                 } else {
-                                    message =
-                                        "Seu e-mail ainda não foi verificado. Por favor, verifique sua caixa de entrada."
+                                    message = "Seu e-mail ainda não foi verificado. Verifique sua caixa de entrada."
                                 }
                             } else {
                                 message = "Erro ao verificar status do e-mail."
@@ -288,21 +340,18 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                 },
                 dismissButton = {
                     TextButton(onClick = {
-                        currentUser?.currentUser?.sendEmailVerification()
-                            ?.addOnCompleteListener { task ->
-                                if (task.isSuccessful) {
-                                    message = "E-mail de verificação reenviado com sucesso!"
-                                } else {
-                                    message = "Erro ao reenviar e-mail de verificação."
-                                }
+                        currentUser?.currentUser?.sendEmailVerification()?.addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                message = "E-mail de verificação reenviado com sucesso!"
+                            } else {
+                                message = "Erro ao reenviar e-mail de verificação."
                             }
+                        }
                     }) {
                         Text("Reenviar e-mail", color = Color.White)
                     }
                 },
-                title = {
-                    Text("Verificação de email", color = Color.White)
-                },
+                title = { Text("Verificação de email", color = Color.White) },
                 text = {
                     Text(
                         "Verifique seu email antes de fazer login para ter acesso a todas as funcionalidades do SuperID",
