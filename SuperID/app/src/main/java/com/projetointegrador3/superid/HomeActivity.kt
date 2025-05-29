@@ -6,11 +6,13 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,6 +74,9 @@ import com.google.firebase.ktx.Firebase
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        onBackPressedDispatcher.addCallback(this) {
+            // Impede o usuário de voltar para activity anterior
+        }
         enableEdgeToEdge()
         setContent {
             SuperIDTheme {
@@ -125,12 +130,8 @@ fun HomeScreen() {
                     Text(
                         "Categorias",
                         style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-
-                    SearchBar(
-                        query = searchText,
-                        onQueryChange = { searchText = it }
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        textAlign = TextAlign.Center
                     )
                 }
             },
