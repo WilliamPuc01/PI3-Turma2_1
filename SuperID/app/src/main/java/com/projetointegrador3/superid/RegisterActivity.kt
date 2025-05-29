@@ -315,7 +315,7 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
             Spacer(modifier = Modifier.height(20.dp))
         }
 
-        // Diálogo de verificação
+        //dialog de verificação de conta
         if (showVerificationDialog) {
             AlertDialog(
                 onDismissRequest = { },
@@ -340,21 +340,17 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                 },
                 dismissButton = {
                     TextButton(onClick = {
-                        currentUser?.currentUser?.sendEmailVerification()?.addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                message = "E-mail de verificação reenviado com sucesso!"
-                            } else {
-                                message = "Erro ao reenviar e-mail de verificação."
-                            }
-                        }
+                        showVerificationDialog = false
+                        val intent = Intent(context, SignInActivity::class.java)
+                        context.startActivity(intent)
                     }) {
-                        Text("Reenviar e-mail", color = Color.White)
+                        Text("Continuar sem verificar", color = Color.White)
                     }
                 },
                 title = { Text("Verificação de email", color = Color.White) },
                 text = {
                     Text(
-                        "Verifique seu email antes de fazer login para ter acesso a todas as funcionalidades do SuperID",
+                        "Verifique seu email antes de fazer login para ter acesso a todas as funcionalidades do SuperID!",
                         color = Color.White
                     )
                 },

@@ -1,3 +1,5 @@
+
+
 package com.projetointegrador3.superid
 
 import android.Manifest
@@ -14,19 +16,19 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.lifecycle.awaitInstance
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.*
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.projetointegrador3.superid.permissions.WithPermission
@@ -41,18 +43,17 @@ class QrScannerActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             WithPermission(permission = Manifest.permission.CAMERA) {
-                TakePhotoScreen()
+                QrScannerScreen(onBack = { finish() })
             }
         }
     }
 }
-
-// Tela de câmera e scanner
 @Composable
-fun TakePhotoScreen() {
+fun QrScannerScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val activity = context as? ComponentActivity
     val imageCapture = remember { ImageCapture.Builder().build() }
+    val colors = MaterialTheme.colorScheme
 
     val analyzer = remember {
         BarcodeAnalyzer { _, status ->
@@ -74,31 +75,55 @@ fun TakePhotoScreen() {
     }
 
     var lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
-    var zoomLevel by remember { mutableFloatStateOf(0.0f) }
 
-    Box {
+    Box(modifier = Modifier.fillMaxSize()) {
         CameraPreview(
             lensFacing = lensFacing,
-            zoomLevel = zoomLevel,
+            zoomLevel = 0.0f,
             imageCaptureUseCase = imageCapture,
             analyzer = analyzer
         )
 
-        Column(modifier = Modifier.align(Alignment.BottomCenter)) {
-            Row {
-                Button(onClick = { lensFacing = CameraSelector.LENS_FACING_FRONT }) { Text("Frontal") }
-                Button(onClick = { lensFacing = CameraSelector.LENS_FACING_BACK }) { Text("Traseira") }
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(16.dp)
+        ) {
+            IconButton(onClick = { onBack() }) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Voltar",
+                    tint = colors.onBackground,
+                    modifier = Modifier.size(32.dp)
+                )
             }
-            Row {
-                Button(onClick = { zoomLevel = 0.0f }) { Text("Zoom 0") }
-                Button(onClick = { zoomLevel = 0.5f }) { Text("Zoom 0.5") }
-                Button(onClick = { zoomLevel = 1.0f }) { Text("Zoom 1.0") }
+        }
+
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(24.dp)
+        ) {
+            Button(
+                onClick = {
+                    lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK)
+                        CameraSelector.LENS_FACING_FRONT
+                    else
+                        CameraSelector.LENS_FACING_BACK
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colors.surface,
+                    contentColor = colors.onSurface
+                )
+            ) {
+                Text("Trocar câmera")
             }
         }
     }
 }
 
-// Preview da câmera
+
 @Composable
 fun CameraPreview(
     modifier: Modifier = Modifier,
@@ -208,7 +233,7 @@ class BarcodeAnalyzer(
     }
 }
 
-// Verifica se o QR foi confirmado no servidor
+// Verifica status de login
 fun verificarLoginStatus(loginToken: String, onResult: (String) -> Unit) {
     Thread {
         try {
@@ -229,6 +254,7 @@ fun verificarLoginStatus(loginToken: String, onResult: (String) -> Unit) {
         }
     }.start()
 }
+
 fun searchLoginDocument(loginToken: String) {
     val db = FirebaseFirestore.getInstance()
     val user = FirebaseAuth.getInstance().currentUser ?: return
@@ -251,19 +277,17 @@ fun searchLoginDocument(loginToken: String) {
                 .get()
                 .addOnSuccessListener { senhas ->
                     if (senhas.isEmpty) {
-                        Log.e("LOGINSENHA", "URL não encontrada para o usuário: $siteUrl")
+                        Log.e("LOGINSENHA", "URL não encontrada: $siteUrl")
                         return@addOnSuccessListener
                     }
 
                     val senhaDoc = senhas.documents.first()
                     val oldAccessToken = senhaDoc.getString("accessToken") ?: generateAccessToken()
-                    val senhaDocId = senhaDoc.id
-
                     confirmarLoginTokenComToken(
                         token = loginDoc.id,
                         userUid = user.uid,
                         oldAccessToken = oldAccessToken,
-                        senhaDocId = senhaDocId
+                        senhaDocId = senhaDoc.id
                     )
                 }
         }
@@ -280,9 +304,8 @@ fun confirmarLoginTokenComToken(
 ) {
     val db = FirebaseFirestore.getInstance()
     val loginRef = db.collection("login").document(token)
-    val newAccessToken = generateAccessToken() // novo token para atualizar na senha
+    val newAccessToken = generateAccessToken()
 
-    // 1. Salva o accessToken antigo no documento de login
     val loginData = hashMapOf(
         "uid" to userUid,
         "accessToken" to oldAccessToken,
@@ -293,9 +316,6 @@ fun confirmarLoginTokenComToken(
 
     loginRef.set(loginData, SetOptions.merge())
         .addOnSuccessListener {
-            Log.d("SuperID", "Login confirmado com token antigo")
-
-            // 2. Atualiza o accessToken novo na senha
             db.collection("usuarios")
                 .document(userUid)
                 .collection("categorias")
@@ -304,14 +324,14 @@ fun confirmarLoginTokenComToken(
                 .document(senhaDocId)
                 .update("accessToken", newAccessToken)
                 .addOnSuccessListener {
-                    Log.d("SuperID", "Novo accessToken atualizado na senha com sucesso")
+                    Log.d("SuperID", "Novo accessToken atualizado com sucesso")
                 }
                 .addOnFailureListener {
-                    Log.e("SuperID", "Erro ao atualizar novo accessToken na senha", it)
+                    Log.e("SuperID", "Erro ao atualizar novo accessToken", it)
                 }
         }
         .addOnFailureListener {
-            Log.e("SuperID", "Erro ao salvar login", it)
+            Log.e("SuperID", "Erro ao confirmar login", it)
         }
 }
 

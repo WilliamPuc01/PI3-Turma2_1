@@ -1,3 +1,4 @@
+
 package com.projetointegrador3.superid
 
 import android.content.Context
@@ -163,7 +164,7 @@ fun HomeScreen() {
                                     showLogoutDialog = false
                                 }
                                 .padding(8.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     },
                     dismissButton = {
