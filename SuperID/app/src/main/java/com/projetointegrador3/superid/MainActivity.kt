@@ -174,7 +174,9 @@ alterações implica na aceitação dos novos termos.
                 ),
                 title = {
                     Box(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 2.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
@@ -182,7 +184,7 @@ alterações implica na aceitação dos novos termos.
                             contentDescription = "Logo SuperID",
                             modifier = Modifier
                                 .height(100.dp)
-                                .padding(bottom = 8.dp),
+                                .padding(bottom = 2.dp),
                             contentScale = ContentScale.Fit
                         )
                     }
@@ -215,7 +217,7 @@ alterações implica na aceitação dos novos termos.
                             contentDescription = "Salve e categorize suas senhas",
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(300.dp),
+                                .height(340.dp),
                             contentScale = ContentScale.Fit
                         )
                         Spacer(modifier = Modifier.height(16.dp))
@@ -268,15 +270,6 @@ alterações implica na aceitação dos novos termos.
                             )
                         }
 
-                        if (showError) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Aceite os termos de uso antes de prosseguir",
-                                color = MaterialTheme.colorScheme.error,
-                                fontSize = 14.sp,
-                                textAlign = TextAlign.Center
-                            )
-                        }
                     }
                 },
                 confirmButton = {
@@ -291,8 +284,11 @@ alterações implica na aceitação dos novos termos.
                                     context.finish()
                                 }
                             } else {
-                                // erro ao não aceitar termos
-                                showError = true
+                                Toast.makeText(
+                                    context,
+                                    "Aceite os termos de uso antes de prosseguir",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                         },
                         modifier = Modifier
@@ -322,7 +318,7 @@ alterações implica na aceitação dos novos termos.
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(300.dp) // Ajuste a altura conforme quiser
+                            .height(300.dp)
                             .verticalScroll(rememberScrollState())
                     ) {
                         Text(
