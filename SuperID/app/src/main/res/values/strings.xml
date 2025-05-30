@@ -2,4 +2,9 @@
     <string name="app_name">SuperID</string>
     <string name="title_activity_signin">SignInActivity</string>
     <string name="title_activity_home">HomeActivity</string>
+    <string name="title_activity_register">RegisterActivity</string>
+    <string name="title_activity_add_category">AddCategoryActivity</string>
+    <string name="title_activity_category_detail">CategoryDetailActivity</string>
+    <string name="title_activity_background_image">BackgroundImageActivity</string>
+    <string name="title_activity_qr_scanner">QrScannerActivity</string>
 </resources>
