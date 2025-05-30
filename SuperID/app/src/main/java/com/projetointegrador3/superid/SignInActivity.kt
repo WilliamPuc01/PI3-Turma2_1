@@ -87,9 +87,8 @@ fun login(email: String, password:String, context: android.content.Context, onRe
             } else {
                 val exception = task.exception
                 val errorMessage = when ((exception as? com.google.firebase.auth.FirebaseAuthException)?.errorCode) {
-                    "ERROR_INVALID_EMAIL" -> "O e-mail inserido é inválido."
-                    "ERROR_WRONG_PASSWORD" -> "Senha incorreta. Tente novamente."
-                    else -> "Erro ao fazer login"
+                    "ERROR_INVALID_EMAIL", "ERROR_WRONG_PASSWORD" -> "Email ou senha incorreta. Por favor, tente novamente."
+                    else -> "Email ou senha incorreta. Por favor, tente novamente."
                 }
                 onResult(errorMessage)
             }
@@ -337,6 +336,7 @@ fun LoginScreen(modifier: Modifier = Modifier.fillMaxSize()) {
             LaunchedEffect(message) {
                 if (message.isNotEmpty()) {
                     Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                    message = ""
                 }
             }
 
