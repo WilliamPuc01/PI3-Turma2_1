@@ -5,3 +5,7 @@ Grupo:
 - [Daniel Henrique Inoue Jange](https://github.com/djange2);  
 - [Luca Diniz Santos](https://github.com/Luca-DS); 
 - [William Kenzo Nakao](https://github.com/WilliamPuc01);
+#
+# Instruções de Uso
+- Clone o repositório e rode a pasta "SuperID" no Android Studio
+- Entrar na pasta "SuperID_web/frontend/pages/login SuperID" e abrir a página na web
