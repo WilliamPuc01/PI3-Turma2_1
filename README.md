@@ -7,5 +7,6 @@ Grupo:
 - [William Kenzo Nakao](https://github.com/WilliamPuc01);
 #
 # Instruções de Uso
-- Clone o repositório e rode a pasta "SuperID" no Android Studio
+- Clone o repositório
+- Entre em "SuperID/app/release/app-release.apk" para baixar o apk do aplicativo android
 - Entrar na pasta "SuperID_web/frontend/pages/login SuperID" e abrir a página na web
