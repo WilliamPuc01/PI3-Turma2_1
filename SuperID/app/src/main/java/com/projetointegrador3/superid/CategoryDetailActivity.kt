@@ -27,6 +27,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -682,7 +684,7 @@ fun AddSenhaDialog(
     var senha by remember { mutableStateOf("") }
     var url by remember { mutableStateOf("") }
     var senhaError by remember { mutableStateOf(false) }
-
+    var passwordVisible by remember { mutableStateOf(false) }
     val secretKey = remember { EncryptionUtils.generateFixedKey() }
     var accessToken by remember { mutableStateOf(EncryptionUtils.generateAccessToken()) }
 
@@ -723,6 +725,15 @@ fun AddSenhaDialog(
                         label = { Text("Senha") },
                         isError = senhaError,
                         singleLine = true,
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                            val description = if (passwordVisible) "Ocultar senha" else "Mostrar senha"
+
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(imageVector = image, contentDescription = description)
+                            }
+                        },
                         colors = TextFieldDefaults.textFieldColors(
                             containerColor = MaterialTheme.colorScheme.surface,
                             focusedIndicatorColor = if (senhaError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,

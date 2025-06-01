@@ -226,7 +226,11 @@ fun LoginScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                         .height(60.dp),
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true,
-                    isError = emailError != null
+                    isError = emailError != null,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 16.sp,
+                        lineHeight = 20.sp
+                    )
                 )
                 AnimatedVisibility(visible = emailError != null) {
                     Text(
