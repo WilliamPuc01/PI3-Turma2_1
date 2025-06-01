@@ -48,6 +48,7 @@ class QrScannerActivity : ComponentActivity() {
         }
     }
 }
+
 @Composable
 fun QrScannerScreen(onBack: () -> Unit) {
     val context = LocalContext.current
@@ -202,6 +203,7 @@ class BarcodeAnalyzer(
                         tokensProcessados.add(token)
 
                         verificarLoginStatus(token) { response ->
+                            // Vê se é um .json
                             if (response.trim().startsWith("{")) {
                                 val json = JSONObject(response)
                                 val status = json.optString("status", "")
@@ -255,6 +257,7 @@ fun verificarLoginStatus(loginToken: String, onResult: (String) -> Unit) {
     }.start()
 }
 
+// Analisa se a tentativa de login é válida
 fun searchLoginDocument(loginToken: String) {
     val db = FirebaseFirestore.getInstance()
     val user = FirebaseAuth.getInstance().currentUser ?: return
@@ -335,6 +338,7 @@ fun confirmarLoginTokenComToken(
         }
 }
 
+// Muda o accessToken
 fun generateAccessToken(): String {
     val randomBytes = ByteArray(192)
     SecureRandom().nextBytes(randomBytes)

@@ -69,6 +69,7 @@ class RegisterActivity : ComponentActivity() {
     }
 }
 
+// Cria a conta
 fun createAccount(name:String, email: String, password:String, context: android.content.Context, onResult: (String) -> Unit){
     val auth = Firebase.auth
     val db = Firebase.firestore
@@ -94,6 +95,7 @@ fun createAccount(name:String, email: String, password:String, context: android.
                         .set(userMap)
                         .addOnSuccessListener {
                             println("Dados do usuário salvos com sucesso!")
+                            // Cria 3 categorias automaticamente
                             createDefaultCategories(id)
                         }
                         .addOnFailureListener { e ->
@@ -115,6 +117,7 @@ fun createAccount(name:String, email: String, password:String, context: android.
         }
 }
 
+// Cria 3 categorias automaticamente
 fun createDefaultCategories(userId: String) {
     val db = Firebase.firestore
     val categorias = listOf("Sites Web", "Aplicativos", "Teclados Físicos")
@@ -188,6 +191,7 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                     singleLine = true,
                     isError = nameError != null
                 )
+                // Avisa o usuário caso tenha algum campo vazio
                 AnimatedVisibility(nameError != null) {
                     Text(nameError.orEmpty(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
@@ -209,6 +213,7 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                     singleLine = true,
                     isError = emailError != null
                 )
+                // Avisa o usuário caso tenha algum campo vazio
                 AnimatedVisibility(emailError != null) {
                     Text(emailError.orEmpty(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
@@ -237,6 +242,7 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                         }
                     }
                 )
+                // Avisa o usuário caso tenha algum campo vazio
                 AnimatedVisibility(passwordError != null) {
                     Text(passwordError.orEmpty(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
@@ -265,6 +271,7 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
                         }
                     }
                 )
+                // Avisa o usuário caso tenha algum campo vazio
                 AnimatedVisibility(confirmPasswordError != null) {
                     Text(confirmPasswordError.orEmpty(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
@@ -272,6 +279,7 @@ fun RegisterScreen(modifier: Modifier = Modifier.fillMaxSize()) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            // Só chama a função createAccount quando todos os campos forem preenchidos
             Button(
                 onClick = {
                     var isValid = true

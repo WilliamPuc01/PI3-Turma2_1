@@ -76,6 +76,7 @@ fun LoginScreenPreview(){
     LoginScreen()
 }
 
+// Realiza o login no app
 fun login(email: String, password:String, context: android.content.Context, onResult: (String) -> Unit){
     val auth = Firebase.auth
     auth.signInWithEmailAndPassword(email, password)
@@ -97,6 +98,7 @@ fun login(email: String, password:String, context: android.content.Context, onRe
 
 // Função para enviar email para redefinir senha
 fun sendPasswordReset(email: String, onResultado: (String) -> Unit) {
+    // Chama o Firebase function para ver se o email está verificado ou não
     val functions = Firebase.functions("southamerica-east1")
 
     functions
@@ -274,6 +276,7 @@ fun LoginScreen(modifier: Modifier = Modifier.fillMaxSize()) {
             Spacer(modifier = Modifier.height(16.dp))
 
             // Botão Entrar
+            // Só é realizado o login se todos campos forem preenchidos
             Button(
                 onClick = {
                     var isValid = true

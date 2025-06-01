@@ -82,6 +82,7 @@ class CategoryDetailActivity : ComponentActivity() {
     }
 }
 
+// Classe para facilitar armazenamento de senhas
 data class Senha(
     val id: String,
     val usuario: String?,
@@ -90,7 +91,7 @@ data class Senha(
     val url: String? = null
 )
 
-
+// Carrega uma lista com as senhas salvas
 fun loadSenhas(
     context: Context,
     categoryName: String,
@@ -119,6 +120,7 @@ fun loadSenhas(
         }
 }
 
+// Salva as senhas
 fun saveSenha(
 context: Context,
 categoryName: String,
@@ -186,6 +188,7 @@ onComplete: () -> Unit
     }
 }
 
+// Criptografia
 object EncryptionUtils {
 
     private const val TRANSFORMATION = "AES/CBC/PKCS5Padding"
@@ -226,6 +229,7 @@ object EncryptionUtils {
     }
 }
 
+// Deleta senhas
 fun deleteSenha(
     context: Context,
     categoryName: String,
@@ -260,6 +264,7 @@ fun deleteSenha(
         }
 }
 
+// Atualiza algum campo de senha
 fun updateSenha(
     context: Context,
     categoryName: String,
@@ -301,6 +306,7 @@ fun updateSenha(
         }
 }
 
+// Atualiza nome de categoria
 fun updateCategoria(
     context: Context,
     categoriaAtual: String,
@@ -308,11 +314,13 @@ fun updateCategoria(
     onError: (String) -> Unit,
     onComplete: () -> Unit
 ) {
+    // Caso o usuário apague o nome ao atualizar
     val nomeLimpo = novoNome.trim()
     if (nomeLimpo.isBlank()) {
         onError("O nome da categoria não pode estar em branco.")
         return
     }
+    // Caso o usuário deixe com o nome antigo
     if (nomeLimpo == categoriaAtual) {
         onError("O novo nome deve ser diferente do atual.")
         return
@@ -339,7 +347,7 @@ fun updateCategoria(
 
             val dadosCategoria = document.data ?: emptyMap<String, Any>()
 
-            // Cria nova categoria com dados antigos
+            // Cria nova categoria com dados antigos, mas o nome novo
             novaCategoriaRef.set(dadosCategoria).addOnSuccessListener {
                 categoriaRef.collection(categoriaAtual).get()
                     .addOnSuccessListener { snapshot ->
@@ -364,6 +372,7 @@ fun updateCategoria(
     }
 }
 
+// Apaga a categoria
 fun deleteCategoria(
     context: Context,
     nomeCategoria: String,

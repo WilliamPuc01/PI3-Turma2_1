@@ -90,7 +90,7 @@ fun saveCategory(categoryName: String, context: Context, onResult: (Boolean) -> 
     }
 }
 
-
+// Verifica se o usuário tentou criar uma categoria com um nome já existente
 fun checkIfCategoryExists(
     categoryName: String,
     context: Context,
@@ -256,5 +256,3 @@ fun AddCategoryScreen() {
         )
     }
 }
-
-

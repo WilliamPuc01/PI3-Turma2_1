@@ -88,7 +88,6 @@ class HomeActivity : ComponentActivity() {
 
 @Composable
 fun HomeScreen() {
-    var searchText by remember { mutableStateOf("") }
     val context = LocalContext.current
     val categoriasState = remember { mutableStateOf<List<String>>(emptyList()) }
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -135,9 +134,11 @@ fun HomeScreen() {
                     )
                 }
             },
+            // Botão de escanear o qr code
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = {
+                        // Verifica se o email é verificado
                         verificarEmail(context){
                             val intent = Intent(context, QrScannerActivity::class.java)
                             context.startActivity(intent)
@@ -212,6 +213,7 @@ fun HomeScreen() {
     }
 }
 
+// função utilizada para poder escanear o qr code
 fun verificarEmail(context: Context, onAutorizado: () -> Unit) {
     val user = FirebaseAuth.getInstance().currentUser
 
@@ -237,7 +239,7 @@ fun verificarEmail(context: Context, onAutorizado: () -> Unit) {
     }
 }
 
-
+// Coloca ícones nas categorias
 fun getIconForCategory(nome: String): ImageVector {
     return when (nome) {
         "Sites Web" -> Icons.Default.Email
@@ -336,40 +338,7 @@ fun listenToCategories(context: Context, onDataChange: (List<String>) -> Unit) {
     }
 }
 
-
-//  Barra de pesquisa de categorias
-@Composable
-fun SearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    placeholder: String = "Buscar..."
-) {
-    TextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        placeholder = { Text(placeholder) },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Ícone de busca"
-            )
-        },
-        singleLine = true,
-        shape = RoundedCornerShape(8.dp),
-        colors = TextFieldDefaults.colors(
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-            focusedContainerColor = MaterialTheme.colorScheme.surface
-        )
-
-    )
-}
-
 //logica pro logout
-
 fun signOut(context: Context) {
     FirebaseAuth.getInstance().signOut()
     Toast.makeText(context, "Logout realizado", Toast.LENGTH_SHORT).show()
