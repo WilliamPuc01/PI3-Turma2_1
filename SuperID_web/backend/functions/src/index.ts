@@ -46,7 +46,7 @@ export const performAuth = functions.https.onRequest((req, res) => {
       await db.collection("login").doc(token).set({
         apiKey,
         loginToken: token,
-        site: siteUrl, // <-- campo adicionado aqui
+        site: siteUrl, 
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         attempts: 0,
       });
